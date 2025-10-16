@@ -1,0 +1,596 @@
+@import url("https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600|Arvo:700");
+
+* {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 100%;
+    font: inherit;
+    vertical-align: baseline;
+    box-sizing: border-box;
+}
+
+.login-body{
+    background-image: url('background.webp');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* login */
+.login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.login-container {
+    background-color: #ffffff;
+    padding: 2em;
+    width: 100%;
+    max-width: 400px;
+    border-top: solid 2px #e5e5e5;
+    background: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.login-container form {
+    gap: 1.5em;
+    margin: 15px 0;
+}
+
+h2 {
+    margin-bottom: 1em;
+    text-align: center;
+}
+
+.error {
+    color: red;
+    text-align: center;
+}
+
+/* admin dashboard */
+
+.admindsh-body {
+    font-family: Arial, sans-serif;
+    color: #000000;
+    margin: 0;
+    padding: 0;
+}
+
+.admin-dashboard-button {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-direction: column;
+    justify-content: center;
+    width: 250px;
+    height: 250px;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    background-color: #7b7b7b;
+    border: 5px solid gainsboro;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.3s;
+
+}
+
+.admin-dashboard-button:hover {
+    border: 5px solid rgb(221, 107, 107);
+}
+
+.admin-dashboard-button:hover,
+.icons {
+    color: rgb(221, 107, 107);
+}
+
+.admin-button-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 35px;
+    margin-top: 10rem;
+}
+
+.adduser-wrapper {
+    justify-self: center;
+    border-top: solid 2px #e5e5e5;
+    background: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    width: 60vw;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.admin-h1 {
+    text-align: center;
+    font-family: 'Arvo';
+    font-weight: 700;
+    color: #ed786a;
+    text-shadow: 0.05em 0.075em 0 rgba(0, 0, 0, 0.1);
+    font-size: 3em;
+    letter-spacing: 13px;
+}
+
+h1,
+h2 {
+    color: #00796b;
+}
+
+.admin-button {
+    background-color: #00796b;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.admin-button:hover {
+    background-color: #004d40;
+}
+
+#student_select,
+#class_select {
+    display: none;
+}
+
+#students_list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+#students_list {
+    background-color: #ffffff;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    width: calc(33.33% - 10px);
+    box-sizing: border-box;
+    font-size: 14px;
+    color: #00796b;
+    /* Teal text color for student name */
+}
+
+#students_list .admin-button {
+    background-color: #00796b;
+    color: white;
+    border: none;
+    padding: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#students_list .admin-button:hover {
+    background-color: #004d40;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    margin: 20px 0;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #ddd;
+    word-wrap: break-word;
+    /* Prevent content overflow */
+}
+
+
+.admin-table th {
+    background-color: #00796b;
+    /* Teal */
+    color: white;
+}
+
+.admin-table td {
+    word-break: break-word;
+}
+
+/* menu style */
+.menu {
+    display: flex;
+    justify-content: center;
+    justify-content: space-evenly;
+    margin-top: 20px;
+    width: 40%;
+    padding: 10px;
+    justify-self: center;
+    flex-wrap: wrap;
+
+}
+
+.menu li {
+    list-style-type: none;
+    border-radius: 5px;
+    padding: 0.5rem;
+    font-size: 16px;
+    cursor: pointer;
+    width: 8rem;
+}
+
+.menu a {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    transition: color 0.3s ease;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: #777;
+    outline: 0;
+    font-size: 0.9rem;
+}
+
+.icons {
+    background-color: #656565;
+    color: rgb(201, 201, 201);
+    border-radius: 50%;
+    padding: 0.2rem;
+    box-shadow: 0.125em 0.175em 0 0 rgba(0, 0, 0, 0.125);
+    transition: background-color 0.3s ease;
+}
+
+.menu a:hover {
+    color: rgb(221, 107, 107);
+
+}
+
+.menu a:hover .icons {
+    background-color: rgb(235, 87, 87);
+    color: white;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+form label {
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #888;
+    display: block;
+}
+
+form input[type="text"],
+form input[type="password"],
+form select,
+form textarea {
+    -moz-transition: background-color 0.25s ease-in-out;
+    -webkit-transition: background-color 0.25s ease-in-out;
+    -ms-transition: background-color 0.25s ease-in-out;
+    transition: background-color 0.25s ease-in-out;
+    --webkit-appearance: none;
+    display: block;
+    border: 0;
+    background: #e8e8e8;
+    width: 100%;
+    box-shadow: inset 2px 2px 0px 0px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    line-height: 1.25em;
+    padding: 0.75em 1em 0.75em 1em;
+}
+
+.checkboxes {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.adduser-wrapper div form input[type="time"],
+.adduser-wrapper div form .select-role {
+    width: 30%;
+}
+
+form input[type="text"]:focus,
+form input[type="password"]:focus,
+form select:focus,
+form textarea:focus {
+    background: #f0f0f0;
+}
+
+.adduser-wrapper form textarea {
+    min-height: 11em;
+}
+
+form ::-webkit-input-placeholder {
+    color: #555 !important;
+    line-height: 1.35em;
+}
+
+form :-moz-placeholder {
+    color: #555 !important;
+}
+
+form ::-moz-placeholder {
+    color: #555 !important;
+}
+
+form :-ms-input-placeholder {
+    color: #555 !important;
+}
+
+form ::-moz-focus-inner {
+    border: 0;
+}
+
+
+form input[type="text"],
+form input[type="password"],
+form select,
+form textarea {
+    background: #f7f7f7;
+}
+
+form input[type="text"]:focus,
+form input[type="password"]:focus,
+form select:focus,
+form textarea:focus {
+    background: #fff;
+}
+
+.adduser-wrapper h1,
+h2 {
+    text-align: center;
+}
+
+.no-style {
+    list-style-type: none;
+}
+
+.remove-btn {
+    background-color: #f44336;
+    color: white;
+    padding: 5px 5px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    width: 1.5em;
+    height: 1.5em;
+}
+
+/* student dashboard */
+
+.student-container {
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    max-width: 1200px;
+    margin: auto;
+}
+.student-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+th {
+    background-color: #333;
+    color: white;
+}
+.header-row {
+    background-color: #444;
+    color: white;
+}
+.grade-a {
+    background-color: #00FF00;
+}
+.grade-b {
+    background-color: #00BFFF;
+}
+.grade-c {
+    background-color: #FFFF00;
+}
+.grade-d {
+    background-color: #FFA500;
+}
+.grade-e {
+    background-color: #FF0000;
+}
+.option-half{
+    width: 30%;
+    margin: 0 auto;
+}
+.student-button{
+    margin-top: 20px;
+    padding: 10px 20px; 
+    background: #333;
+    color: white;
+    border: none; 
+    border-radius: 5px; 
+    cursor:pointer;
+    width: 7rem;
+}
+.student-info{
+    display:flex;
+    justify-content:space-around;
+    align-items: flex-start;
+    width:100%;
+    border:1px solid black;
+    border-bottom:none;
+    border-radius:10px;
+    margin-bottom: -1.8rem;
+    height: 2rem;
+}
+.info-div {
+        display: none;
+        justify-content: space-between;
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px solid black;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+        flex-wrap: wrap;
+    }
+
+    .grade-info, .discipline-info, .forget-info {
+        cursor: pointer;
+        padding: 5px 10px;
+        background-color: #ddd;
+        color: black;
+        border: none;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+    }
+    .card-1,.card-2, .card-3, .card-4, .card-5{
+        display: flex;
+        flex-direction: column;
+        width: 10rem;
+    }
+    .grade-info.active, .discipline-info.active, .forget-info.active {
+        background-color: red;
+        color: white;
+    }
+    .discipline-info, .forget-info {
+        display: none;
+    }
+
+    /* nth-child styling for headings */
+    .card-1 h2 { color: #00FF00; }
+    .card-2 h2 { color: #00BFFF; }
+    .card-3 h2 { color: #d5d52e; }
+    .card-4 h2 { color: #FFA500; }
+    .card-5 h2 { color: #FF0000; }
+/* teacher dashboard */
+.tch-dashboard-wrapper {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+}
+.tch-dashboard-container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    max-width: 1200px;
+    margin: auto;
+    text-align: center;
+}
+.drag-container {
+    display: flex;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+.grade-column {
+    flex: 1;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    color: white;
+    font-weight: bold;
+}
+.grade-column h3 {
+    margin: 0;
+    font-size: 18px;
+}
+.grade-column:nth-child(1) {
+    background-color: #28a745; /* Green per Noten A */
+}
+.grade-column:nth-child(2) {
+    background-color: #007bff; /* Blue per Noten B */
+}
+.grade-column:nth-child(3) {
+    background-color: #ffc107; /* Yellow per Noten C */
+}
+.grade-column:nth-child(4) {
+    background-color: #fd7e14; /* Orange per Noten D */
+}
+.grade-column:nth-child(5) {
+    background-color: #dc3545; /* Red per Noten E */
+}
+.student {
+    padding: 8px;
+    margin: 10px 0;
+    background: white;
+    color: black;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: move;
+    text-align: center;
+    font-size: 14px;
+}
+.success-message {
+    color: green;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+select, button {
+    padding: 10px;
+    margin-top: 20px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+
+/* Responsiveness */
+@media (max-width: 768px) {
+    #students_list {
+        width: calc(50% - 10px);
+        /* Two items per row on medium screens */
+    }
+
+    .admin-table th,
+    .admin-table td {
+        font-size: 14px;
+        padding: 8px;
+    }
+
+    .table-responsive {
+        margin: 10px 0;
+    }
+
+}
+
+@media (max-width:600px) {
+
+    .adduser-wrapper form input[type="text"],
+    .adduser-wrapper form input[type="password"],
+    .adduser-wrapper form select,
+    .adduser-wrapper form textarea {
+        width: 80%;
+    }
+
+}
+@media (max-width:550px) {
+    .grade-column{
+        max-width: 100px;
+    }
+}
+
+@media(max-width: 480px) {
+    #students_list {
+        width: 100%;
+        /* Full width on small screens */
+    }
+}
