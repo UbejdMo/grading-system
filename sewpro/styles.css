@@ -167,6 +167,35 @@ h3 { font-size: 1.02rem; margin: 1.6rem 0 0.6rem; }
 
 .menu .icons { font-size: 1.2rem; }
 
+/* Numëratori i mbylljes së orarit */
+.session-timer {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.session-timer .material-symbols-outlined { font-size: 1.15rem; }
+
+.session-timer[hidden] { display: none; }
+
+@keyframes timerPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.55); }
+    50% { box-shadow: 0 0 0 8px rgba(244, 63, 94, 0); }
+}
+
+.session-timer.urgent {
+    background: linear-gradient(135deg, #f43f5e, #be123c);
+    border-color: transparent;
+    animation: timerPulse 1.6s ease infinite;
+}
+
 /* ============ Struktura e faqes ============ */
 .page {
     flex: 1;

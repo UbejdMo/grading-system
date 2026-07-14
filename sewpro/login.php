@@ -22,6 +22,11 @@ if (isset($_SESSION['user_id']) && isset($dashboards[$_SESSION['role'] ?? ''])) 
 
 $error = null;
 
+// Sesioni u mbyll automatikisht sepse orari i kyçjes përfundoi
+if (isset($_GET['expired'])) {
+    $error = 'Orari i kyçjes përfundoi dhe sesioni u mbyll automatikisht.';
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
 
@@ -59,22 +64,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Mesazh i njëjtë për të dyja rastet - nuk zbulojmë se cili ishte gabim
         $error = 'Përdoruesi ose fjalëkalimi është gabim.';
     } else {
-        // Kontrolli i orarit të kyçjes për rolin - PARA se të krijohet sesioni
-        $stmt = $conn->prepare('SELECT days, start_time, end_time FROM user_time_limits WHERE role = ?');
-        $stmt->bind_param('s', $user['role']);
-        $stmt->execute();
-        $time_limit = $stmt->get_result()->fetch_assoc();
+        // Kontrolli i orarit të kyçjes për rolin - PARA se të krijohet sesioni.
+        // E njëjta logjikë (role_time_window) përdoret edhe gjatë sesionit.
+        $window = role_time_window($conn, $user['role']);
+        $current_day_shqip = $days_in_shqip[date('l')];
 
-        $current_day = date('l');
-        $current_day_shqip = $days_in_shqip[$current_day];
-        $current_time = date('H:i:s');
-
-        if (!$time_limit || !in_array($current_day, array_map('trim', explode(',', $time_limit['days'])), true)) {
+        if (!$window['allowed'] && $window['code'] === 'day') {
             $error = "Ditën $current_day_shqip ju nuk mund të kyçeni.";
-        } elseif ($current_time < $time_limit['start_time']) {
-            $error = "Për ditën $current_day_shqip, orari i kyçjes nuk ka filluar. Orari fillon në orën " . substr($time_limit['start_time'], 0, 5) . '.';
-        } elseif ($current_time > $time_limit['end_time']) {
-            $error = "Për ditën $current_day_shqip, orari i kyçjes ka kaluar. Orari ka përfunduar në orën " . substr($time_limit['end_time'], 0, 5) . '.';
+        } elseif (!$window['allowed'] && $window['code'] === 'before') {
+            $error = "Për ditën $current_day_shqip, orari i kyçjes nuk ka filluar. Orari fillon në orën " . substr($window['starts_at'], 0, 5) . '.';
+        } elseif (!$window['allowed']) {
+            $error = "Për ditën $current_day_shqip, orari i kyçjes ka kaluar. Orari ka përfunduar në orën " . substr($window['ends_at'], 0, 5) . '.';
         } else {
             // Gjithçka në rregull - krijo sesionin e ri
             session_regenerate_id(true);

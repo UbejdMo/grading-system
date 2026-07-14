@@ -9,5 +9,6 @@ if (ini_get('session.use_cookies')) {
 
 session_destroy();
 
-header('Location: login.php');
+// Kur çkyçja vjen nga përfundimi i orarit, tregoja arsyen në faqen e kyçjes
+header('Location: login.php' . (isset($_GET['expired']) ? '?expired=1' : ''));
 exit();
