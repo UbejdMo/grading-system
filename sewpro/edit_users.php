@@ -1,178 +1,243 @@
 <?php
-// Start session if not already started
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/includes/layout.php';
+require_role('admin');
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
-    header("Location: login.php");
-    exit();
-}
+$success_message = null;
+$error_message = null;
 
-include('db.php');
+// Modifikimi i të dhënave të përdoruesit
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_user'])) {
+    csrf_check();
 
-// Get the list of classes
-$classes_query = "SELECT * FROM classes";
-$classes_result = $conn->query($classes_query);
+    $user_id = (int) $_POST['user_id'];
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $role = $_POST['role'] ?? '';
 
-// Filter users based on selected class
-$class_id_filter = isset($_GET['class_id']) ? $_GET['class_id'] : null;
+    if ($username === '' || !in_array($role, ['admin', 'teacher', 'student', 'parent'], true)) {
+        $error_message = 'Plotësoni emrin e përdoruesit dhe zgjidhni rol valid.';
+    } else {
+        try {
+            // Fjalëkalimi ndryshohet vetëm nëse është shkruar një i ri
+            if ($password !== '') {
+                $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                $stmt = $conn->prepare('UPDATE users SET username = ?, password = ?, role = ? WHERE user_id = ?');
+                $stmt->bind_param('sssi', $username, $password_hash, $role, $user_id);
+            } else {
+                $stmt = $conn->prepare('UPDATE users SET username = ?, role = ? WHERE user_id = ?');
+                $stmt->bind_param('ssi', $username, $role, $user_id);
+            }
+            $stmt->execute();
 
-if ($class_id_filter) {
-    // Query to fetch users belonging to the selected class
-    $users_query = "
-        SELECT u.user_id, u.username, u.role
-        FROM users u
-        LEFT JOIN teacher_class tc ON u.user_id = tc.teacher_id
-        LEFT JOIN student_class sc ON u.user_id = sc.student_id
-        LEFT JOIN parent_student ps ON u.user_id = ps.parent_id
-        LEFT JOIN student_class sc2 ON ps.student_id = sc2.student_id
-        WHERE (tc.class_id = ? OR sc.class_id = ? OR sc2.class_id = ?)
-        GROUP BY u.user_id
-    ";
-    $stmt = $conn->prepare($users_query);
-    $stmt->bind_param("iii", $class_id_filter, $class_id_filter, $class_id_filter);
-    $stmt->execute();
-    $users_result = $stmt->get_result();
-} else {
-    // Fetch all users if no class is selected
-    $users_query = "SELECT * FROM users";
-    $users_result = $conn->query($users_query);
-}
+            // Përditëso klasën për mësues/nxënës
+            if (($role === 'teacher' || $role === 'student') && !empty($_POST['class_id'])) {
+                $class_id = (int) $_POST['class_id'];
+                $table = $role === 'teacher' ? 'teacher_class' : 'student_class';
+                $column = $role === 'teacher' ? 'teacher_id' : 'student_id';
+                $conn->query("DELETE FROM $table WHERE $column = " . $user_id);
+                $stmt = $conn->prepare("INSERT INTO $table ($column, class_id) VALUES (?, ?)");
+                $stmt->bind_param('ii', $user_id, $class_id);
+                $stmt->execute();
+            }
 
-// Handle form submission for updating user or removing student-parent connection
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['edit_user'])) {
-        $user_id = $_POST['user_id'];
-        $username = $_POST['username'];
-        $password = $_POST['password'];
-        $role = $_POST['role'];
-
-        $query = "UPDATE users SET username = ?, password = ?, role = ? WHERE user_id = ?";
-        $stmt = $conn->prepare($query);
-        $stmt->bind_param("sssi", $username, $password, $role, $user_id);
-
-        if ($stmt->execute()) {
-            echo "Përdoruesi u modifikua me sukses!";
-        } else {
-            echo "Error: " . $stmt->error;
+            $success_message = 'Përdoruesi u modifikua me sukses!';
+        } catch (mysqli_sql_exception $e) {
+            $error_message = $e->getCode() === 1062
+                ? 'Ky emër përdoruesi ekziston tashmë.'
+                : 'Gabim gjatë ruajtjes.';
         }
     }
+    $_GET['user_id'] = $user_id;
+}
 
-    if (isset($_POST['remove_child'])) {
-        $parent_id = $_POST['parent_id'];
-        $student_id = $_POST['student_id'];
+// Heqja e lidhjes prind-nxënës
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_child'])) {
+    csrf_check();
+    $parent_id = (int) $_POST['parent_id'];
+    $student_id = (int) $_POST['student_id'];
 
-        $delete_query = "DELETE FROM parent_student WHERE parent_id = ? AND student_id = ?";
-        $stmt = $conn->prepare($delete_query);
-        $stmt->bind_param("ii", $parent_id, $student_id);
+    $stmt = $conn->prepare('DELETE FROM parent_student WHERE parent_id = ? AND student_id = ?');
+    $stmt->bind_param('ii', $parent_id, $student_id);
+    $stmt->execute();
+    $success_message = 'Lidhja e nxënësit me prindin u fshi me sukses!';
+    $_GET['user_id'] = $parent_id;
+}
 
-        if ($stmt->execute()) {
-            echo "Lidhja e Nxënësit me Prind u fshi me sukses!";
-        } else {
-            echo "Error: " . $stmt->error;
+// Shtimi i lidhjes prind-nxënës
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_child'])) {
+    csrf_check();
+    $parent_id = (int) $_POST['parent_id'];
+    $student_id = (int) $_POST['new_student_id'];
+
+    if ($student_id > 0) {
+        try {
+            $stmt = $conn->prepare('INSERT INTO parent_student (parent_id, student_id) VALUES (?, ?)');
+            $stmt->bind_param('ii', $parent_id, $student_id);
+            $stmt->execute();
+            $success_message = 'Nxënësi u lidh me prindin me sukses!';
+        } catch (mysqli_sql_exception $e) {
+            $error_message = 'Ky nxënës është i lidhur tashmë me një prind.';
         }
+    }
+    $_GET['user_id'] = $parent_id;
+}
+
+// Lista e përdoruesve për përzgjedhje
+$users_result = $conn->query("SELECT user_id, username, role FROM users ORDER BY FIELD(role, 'admin', 'teacher', 'student', 'parent'), username");
+
+$selected_user_id = (int) ($_GET['user_id'] ?? 0);
+$selected_user = null;
+$selected_class_id = 0;
+$children = [];
+$available_students = [];
+
+if ($selected_user_id) {
+    $stmt = $conn->prepare('SELECT user_id, username, role FROM users WHERE user_id = ?');
+    $stmt->bind_param('i', $selected_user_id);
+    $stmt->execute();
+    $selected_user = $stmt->get_result()->fetch_assoc();
+}
+
+if ($selected_user) {
+    if ($selected_user['role'] === 'teacher' || $selected_user['role'] === 'student') {
+        $table = $selected_user['role'] === 'teacher' ? 'teacher_class' : 'student_class';
+        $column = $selected_user['role'] === 'teacher' ? 'teacher_id' : 'student_id';
+        $stmt = $conn->prepare("SELECT class_id FROM $table WHERE $column = ?");
+        $stmt->bind_param('i', $selected_user_id);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $selected_class_id = $row ? (int) $row['class_id'] : 0;
+    }
+
+    if ($selected_user['role'] === 'parent') {
+        $stmt = $conn->prepare(
+            'SELECT s.user_id, s.username
+             FROM users s
+             JOIN parent_student ps ON s.user_id = ps.student_id
+             WHERE ps.parent_id = ?
+             ORDER BY s.username'
+        );
+        $stmt->bind_param('i', $selected_user_id);
+        $stmt->execute();
+        $children = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+        $available_result = $conn->query(
+            "SELECT u.user_id, u.username
+             FROM users u
+             WHERE u.role = 'student'
+               AND u.user_id NOT IN (SELECT student_id FROM parent_student)
+             ORDER BY u.username"
+        );
+        $available_students = $available_result->fetch_all(MYSQLI_ASSOC);
     }
 }
 
-// Fetch the child (student) of a selected parent
-$selected_parent_id = isset($_GET['parent_id']) ? $_GET['parent_id'] : null;
-$children_result = null;
-if ($selected_parent_id) {
-    $children_query = "
-        SELECT s.user_id, s.username
-        FROM users s
-        INNER JOIN parent_student ps ON s.user_id = ps.student_id
-        WHERE ps.parent_id = ?
-    ";
-    $stmt = $conn->prepare($children_query);
-    $stmt->bind_param("i", $selected_parent_id);
-    $stmt->execute();
-    $children_result = $stmt->get_result();
-}
+$classes = $conn->query('SELECT * FROM classes ORDER BY class_name')->fetch_all(MYSQLI_ASSOC);
+
+page_header('Modifiko Përdoruesin', [
+    ['href' => 'admin_dashboard.php', 'icon' => 'shield_person', 'label' => 'Paneli'],
+    ['href' => 'manage_users.php', 'icon' => 'group', 'label' => 'Përdoruesit'],
+]);
 ?>
+<div class="card" style="max-width: 640px; margin-left: auto; margin-right: auto;">
+    <h1>Modifiko Përdoruesin</h1>
 
-<!DOCTYPE html>
-<html lang="en">
+    <?php if ($success_message !== null): ?>
+        <p class="success-message"><?= e($success_message) ?></p>
+    <?php endif; ?>
+    <?php if ($error_message !== null): ?>
+        <p class="error"><?= e($error_message) ?></p>
+    <?php endif; ?>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit User</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-</head>
+    <form method="GET">
+        <div class="form-row">
+            <label for="user_id">Zgjedh përdoruesin:</label>
+            <select name="user_id" id="user_id" onchange="this.form.submit()">
+                <option value="">Zgjedh Përdoruesin</option>
+                <?php while ($user = $users_result->fetch_assoc()): ?>
+                    <option value="<?= (int) $user['user_id'] ?>" <?= $selected_user_id === (int) $user['user_id'] ? 'selected' : '' ?>>
+                        <?= e($user['username']) ?> (<?= e($user['role']) ?>)
+                    </option>
+                <?php endwhile; ?>
+            </select>
+        </div>
+    </form>
 
-<body class="admindsh-body">
-    <div class="menu">
-        <li><a href="admin_dashboard.php"><span class="material-symbols-outlined icons">shield_person</span>Moduli Administratorit</a></li>
-        <li><a href="manage_users.php"><span class="material-symbols-outlined icons">group</span>Menaxho Përdorues</a></li>
-        <li><a href="logout.php"><span class="material-symbols-outlined icons">logout</span>Çkyçu</a></li>
-    </div>
-    <section class="adduser-wrapper">
-        <div>
-            <h1>Modifiko Përdoruesin</h1>
+    <?php if ($selected_user): ?>
+        <form method="POST">
+            <?= csrf_field() ?>
+            <input type="hidden" name="user_id" value="<?= (int) $selected_user['user_id'] ?>">
 
-            <!-- Dropdown to filter users by class -->
-            <form method="GET">
-                <label for="class_id">Filtro sipas klasës: <i class="fa-solid fa-filter"></i></label>
-                <select name="class_id" id="class_id" onchange="this.form.submit()">
-                    <option value="">Të gjitha klasat</option>
-                    <?php
-                    while ($class = $classes_result->fetch_assoc()) {
-                        $selected = ($class['class_id'] == $class_id_filter) ? 'selected' : '';
-                        echo "<option value='{$class['class_id']}' $selected>{$class['class_name']}</option>";
-                    }
-                    ?>
+            <div class="form-row">
+                <label for="username">Përdoruesi:</label>
+                <input type="text" name="username" id="username" value="<?= e($selected_user['username']) ?>" required>
+            </div>
+            <div class="form-row">
+                <label for="password">Fjalëkalimi i ri (lëreni bosh për ta mbajtur të vjetrin):</label>
+                <input type="password" name="password" id="password" placeholder="Fjalëkalimi i ri">
+            </div>
+            <div class="form-row">
+                <label for="role">Roli:</label>
+                <select name="role" id="role" required>
+                    <?php foreach (['admin' => 'Administrator', 'teacher' => 'Mësues', 'student' => 'Nxënës', 'parent' => 'Prind'] as $role_key => $role_name): ?>
+                        <option value="<?= $role_key ?>" <?= $selected_user['role'] === $role_key ? 'selected' : '' ?>><?= $role_name ?></option>
+                    <?php endforeach; ?>
                 </select>
-            </form>
-            <br>
+            </div>
 
-            <!-- Form to edit user details -->
-            <form method="POST">
-                <select name="user_id" id="user_id" required onchange="window.location.href='?parent_id=' + this.value">
-                    <option value="">Zgjedh Përdoruesin</option>
-                    <?php
-                    while ($user = $users_result->fetch_assoc()) {
-                        $selected = ($user['user_id'] == $selected_parent_id) ? 'selected' : '';
-                        echo "<option value='{$user['user_id']}' $selected>{$user['username']} ({$user['role']})</option>";
-                    }
-                    ?>
-                </select>
+            <?php if ($selected_user['role'] === 'teacher' || $selected_user['role'] === 'student'): ?>
+                <div class="form-row">
+                    <label for="class_id">Klasa:</label>
+                    <select name="class_id" id="class_id">
+                        <?php foreach ($classes as $class): ?>
+                            <option value="<?= (int) $class['class_id'] ?>" <?= $selected_class_id === (int) $class['class_id'] ? 'selected' : '' ?>>
+                                <?= e($class['class_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
 
-                <input placeholder="Përdoruesi" type="text" name="username" required />
-                <input placeholder="Fjalëkalimi" type="password" name="password" required />
+            <button class="admin-button" type="submit" name="edit_user">Ruaj ndryshimet</button>
+        </form>
 
-                <label>Roli:</label>
-                <select name="role" required>
-                    <option value="teacher">Mësues</option>
-                    <option value="student">Nxënës</option>
-                    <option value="parent">Prind</option>
-                </select><br>
-
-                <button class="admin-button" type="submit" name="edit_user">Modifiko Përdoruesin</button>
-            </form>
-
-            <!-- Display and remove connected children if parent is selected -->
-            <?php if ($children_result && $children_result->num_rows > 0): ?>
-                <h2>Nxënësit e ndërlidhur</h2>
+        <?php if ($selected_user['role'] === 'parent'): ?>
+            <h2>Nxënësit e ndërlidhur</h2>
+            <?php if ($children): ?>
                 <ul>
-                    <?php while ($child = $children_result->fetch_assoc()): ?>
+                    <?php foreach ($children as $child): ?>
                         <li class="no-style">
-                            <?php echo $child['username']; ?>
-                            <form method="POST" style="display:inline;">
-                                <input type="hidden" name="parent_id" value="<?php echo $selected_parent_id; ?>">
-                                <input type="hidden" name="student_id" value="<?php echo $child['user_id']; ?>">
+                            <?= e($child['username']) ?>
+                            <form method="POST" style="display: inline;"
+                                onsubmit="return confirm('Të hiqet lidhja me <?= e($child['username']) ?>?');">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="parent_id" value="<?= (int) $selected_user['user_id'] ?>">
+                                <input type="hidden" name="student_id" value="<?= (int) $child['user_id'] ?>">
                                 <button type="submit" name="remove_child" class="remove-btn">x</button>
                             </form>
                         </li>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </ul>
+            <?php else: ?>
+                <p class="muted">Ky prind nuk ka nxënës të lidhur.</p>
             <?php endif; ?>
 
-        </div>
-    </section>
-</body>
-
-</html>
+            <?php if ($available_students): ?>
+                <form method="POST" style="flex-direction: row; align-items: flex-end; gap: 0.5rem; margin-top: 0.75rem;">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="parent_id" value="<?= (int) $selected_user['user_id'] ?>">
+                    <div class="form-row" style="flex: 1;">
+                        <label for="new_student_id">Lidh nxënës të ri:</label>
+                        <select name="new_student_id" id="new_student_id">
+                            <?php foreach ($available_students as $student): ?>
+                                <option value="<?= (int) $student['user_id'] ?>"><?= e($student['username']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <button class="admin-button" type="submit" name="add_child">Lidh</button>
+                </form>
+            <?php endif; ?>
+        <?php endif; ?>
+    <?php endif; ?>
+</div>
+<?php page_footer(); ?>
