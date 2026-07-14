@@ -1,14 +1,12 @@
 <?php
-$servername = "localhost"; // Replace with your server name if different
-$username = "root"; // Default username for XAMPP is 'root'
-$password = ""; // Default password for XAMPP is empty
-$dbname = "sewpro"; // Replace with your database name
+require_once __DIR__ . '/config.php';
 
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-// Check connection
-if ($conn->connect_error) {
-    die("Konektimi Dështoi: " . $conn->connect_error);
+try {
+    $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+    $conn->set_charset('utf8mb4');
+} catch (mysqli_sql_exception $e) {
+    http_response_code(500);
+    exit('Konektimi me bazën e të dhënave dështoi.');
 }
-?>

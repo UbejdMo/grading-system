@@ -1,133 +1,133 @@
 <?php
-session_start();
-include('db.php'); // Përfshirja e skedarit për lidhjen me bazën e të dhënave
+require_once __DIR__ . '/includes/auth.php';
 
-// Ditët e javës në shqip
-$days_in_shqip = array(
-    'Sunday' => 'e Diel',
-    'Monday' => 'e Hënë',
-    'Tuesday' => 'e Martë',
-    'Wednesday' => 'e Mërkurë',
-    'Thursday' => 'e Enjte',
-    'Friday' => 'e Premte',
-    'Saturday' => 'e Shtunë'
-);
+$days_in_shqip = [
+    'Sunday' => 'e Diel', 'Monday' => 'e Hënë', 'Tuesday' => 'e Martë',
+    'Wednesday' => 'e Mërkurë', 'Thursday' => 'e Enjte', 'Friday' => 'e Premte',
+    'Saturday' => 'e Shtunë',
+];
 
-// Handle login form submission
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-    $remember_me = isset($_POST['remember_me']);
+$dashboards = [
+    'admin' => 'admin_dashboard.php',
+    'teacher' => 'teacher_dashboard.php',
+    'student' => 'student_dashboard.php',
+    'parent' => 'parent_dashboard.php',
+];
 
-    // Verifikimi i përdoruesit dhe fjalëkalimit (pa përdorur hash)
-    $stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($result->num_rows > 0) {
-        // Përdoruesi ekziston, tani kontrollojmë fjalëkalimin
-        $user = $result->fetch_assoc();
-
-        if ($user['password'] === $password) {
-            // Fjalëkalimi është i saktë
-            $_SESSION['user_id'] = $user['user_id'];
-            $_SESSION['role'] = $user['role'];
-
-            // Merr kufizimet e kohës për rolin
-            $stmt = $conn->prepare("SELECT * FROM user_time_limits WHERE role = ?");
-            $stmt->bind_param("s", $user['role']);
-            $stmt->execute();
-            $time_result = $stmt->get_result();
-
-            // Merr ditën aktuale dhe kohën aktuale
-            $current_day = date('l');
-            $current_day_shqip = $days_in_shqip[$current_day];
-            $current_time = date('H:i');
-
-            if ($time_result->num_rows > 0) {
-                $time_limit = $time_result->fetch_assoc();
-                $allowed_days = explode(",", $time_limit['days']);
-                if (in_array($current_day, $allowed_days)) {
-                    if ($current_time < $time_limit['start_time']) {
-                        $error = "Për ditën $current_day_shqip, orari i kyçjes nuk ka filluar. Orari fillon në orën " . $time_limit['start_time'] . ".";
-                    } elseif ($current_time > $time_limit['end_time']) {
-                        $error = "Për ditën $current_day_shqip, orari i kyçjes ka kaluar. Orari ka përfunduar në orën " . $time_limit['end_time'] . ".";
-                    } else {
-                        if ($user['role'] == 'admin') {
-                            header("Location: admin_dashboard.php");
-                        } elseif ($user['role'] == 'teacher') {
-                            header("Location: teacher_dashboard.php");
-                        } elseif ($user['role'] == 'student') {
-                            header("Location: student_dashboard.php");
-                        } elseif ($user['role'] == 'parent') {
-                            header("Location: parent_dashboard.php");
-                        }
-                        exit();
-                    }
-                } else {
-                    $error = "Ditën $current_day_shqip ju nuk mund të kyçeni.";
-                }
-            } else {
-                $error = "Ditën $current_day_shqip ju nuk mund të kyçeni.";
-            }
-
-            // Handle Remember Me functionality
-            if (isset($remember_me)) {
-                setcookie('username', $username, time() + (86400 * 30), "/");
-                setcookie('password', $password, time() + (86400 * 30), "/");
-                $token = bin2hex(random_bytes(16));
-                setcookie('remember_token', $token, time() + (86400 * 30), "/");
-
-                $stmt = $conn->prepare("INSERT INTO remember_tokens (user_id, token, expiration) VALUES (?, ?, ?)");
-                $expiration = date('Y-m-d H:i:s', strtotime('+30 days'));
-                $stmt->execute([$_SESSION['user_id'], $token, $expiration]);
-            }
-        } else {
-            $error = "Fjalëkalimi është gabim.";
-        }
-    } else {
-        $error = "Përdoruesi nuk ekziston.";
-    }
+// Nëse është i kyçur tashmë, dërgoje te paneli i vet
+if (isset($_SESSION['user_id']) && isset($dashboards[$_SESSION['role'] ?? ''])) {
+    header('Location: ' . $dashboards[$_SESSION['role']]);
+    exit();
 }
 
-?>
+$error = null;
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_check();
+
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $remember_me = isset($_POST['remember_me']);
+
+    $stmt = $conn->prepare('SELECT user_id, username, password, role FROM users WHERE username = ?');
+    $stmt->bind_param('s', $username);
+    $stmt->execute();
+    $user = $stmt->get_result()->fetch_assoc();
+
+    // Pranon hash-e moderne; fjalëkalimet e vjetra (tekst i thjeshtë) i
+    // verifikon një herë të fundit dhe i konverton menjëherë në hash.
+    $password_ok = false;
+    if ($user) {
+        if (password_verify($password, $user['password'])) {
+            $password_ok = true;
+            if (password_needs_rehash($user['password'], PASSWORD_DEFAULT)) {
+                $new_hash = password_hash($password, PASSWORD_DEFAULT);
+                $upd = $conn->prepare('UPDATE users SET password = ? WHERE user_id = ?');
+                $upd->bind_param('si', $new_hash, $user['user_id']);
+                $upd->execute();
+            }
+        } elseif (hash_equals($user['password'], $password)) {
+            $password_ok = true;
+            $new_hash = password_hash($password, PASSWORD_DEFAULT);
+            $upd = $conn->prepare('UPDATE users SET password = ? WHERE user_id = ?');
+            $upd->bind_param('si', $new_hash, $user['user_id']);
+            $upd->execute();
+        }
+    }
+
+    if (!$password_ok) {
+        // Mesazh i njëjtë për të dyja rastet - nuk zbulojmë se cili ishte gabim
+        $error = 'Përdoruesi ose fjalëkalimi është gabim.';
+    } else {
+        // Kontrolli i orarit të kyçjes për rolin - PARA se të krijohet sesioni
+        $stmt = $conn->prepare('SELECT days, start_time, end_time FROM user_time_limits WHERE role = ?');
+        $stmt->bind_param('s', $user['role']);
+        $stmt->execute();
+        $time_limit = $stmt->get_result()->fetch_assoc();
+
+        $current_day = date('l');
+        $current_day_shqip = $days_in_shqip[$current_day];
+        $current_time = date('H:i:s');
+
+        if (!$time_limit || !in_array($current_day, array_map('trim', explode(',', $time_limit['days'])), true)) {
+            $error = "Ditën $current_day_shqip ju nuk mund të kyçeni.";
+        } elseif ($current_time < $time_limit['start_time']) {
+            $error = "Për ditën $current_day_shqip, orari i kyçjes nuk ka filluar. Orari fillon në orën " . substr($time_limit['start_time'], 0, 5) . '.';
+        } elseif ($current_time > $time_limit['end_time']) {
+            $error = "Për ditën $current_day_shqip, orari i kyçjes ka kaluar. Orari ka përfunduar në orën " . substr($time_limit['end_time'], 0, 5) . '.';
+        } else {
+            // Gjithçka në rregull - krijo sesionin e ri
+            session_regenerate_id(true);
+            $_SESSION['user_id'] = (int) $user['user_id'];
+            $_SESSION['role'] = $user['role'];
+
+            // "Ruaj llogarinë" ruan vetëm emrin e përdoruesit (kurrë fjalëkalimin)
+            if ($remember_me) {
+                setcookie('username', $user['username'], time() + 86400 * 30, '/', '', false, true);
+            } else {
+                setcookie('username', '', time() - 3600, '/');
+            }
+
+            header('Location: ' . $dashboards[$user['role']]);
+            exit();
+        }
+    }
+}
+?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sq">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Kyçja në sistem</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="login-body">
     <div class="login-wrapper">
-    <div class="login-container">
-        <h2>Kyçja në sistem</h2>
-        <form action="" method="POST">
-            <div class="form-group">
-                <label for="username">Përdoruesi:</label>
-                <input type="text" name="username" id="username"
-                    value="<?php echo isset($_COOKIE['username']) ? $_COOKIE['username'] : ''; ?>" required>
-            </div>
-            <div class="form-group">
-                <label for="password">Fjalëkalimi:</label>
-                <input type="password" name="password" id="password"
-                    value="<?php echo isset($_COOKIE['password']) ? $_COOKIE['password'] : ''; ?>" required>
-            </div>
-            <div class="form-group remember-me">
-                <input type="checkbox" name="remember_me" id="remember_me" <?php echo isset($_COOKIE['username']) ? 'checked' : ''; ?>>
-                <label for="remember_me">Ruaj llogarinë</label>
-            </div>
-            <button class="admin-button" type="submit" class="btn">Kyçu</button>
-        </form>
+        <div class="login-container">
+            <h2>Kyçja në sistem</h2>
+            <form action="login.php" method="POST">
+                <?= csrf_field() ?>
+                <div class="form-group">
+                    <label for="username">Përdoruesi:</label>
+                    <input type="text" name="username" id="username" autocomplete="username"
+                        value="<?= e($_COOKIE['username'] ?? '') ?>" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Fjalëkalimi:</label>
+                    <input type="password" name="password" id="password" autocomplete="current-password" required>
+                </div>
+                <div class="form-group remember-me">
+                    <input type="checkbox" name="remember_me" id="remember_me" <?= isset($_COOKIE['username']) ? 'checked' : '' ?>>
+                    <label for="remember_me">Ruaj llogarinë</label>
+                </div>
+                <button class="admin-button" type="submit">Kyçu</button>
+            </form>
 
-        <?php if (isset($error)) { ?>
-            <div class="error"><?php echo $error; ?></div>
-        <?php } ?>
-    </div>
+            <?php if ($error !== null): ?>
+                <div class="error"><?= e($error) ?></div>
+            <?php endif; ?>
+        </div>
     </div>
 </body>
-
 </html>
