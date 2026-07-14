@@ -1,271 +1,176 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'student') {
-    header("Location: index.html");
-    exit();
-}
+require_once __DIR__ . '/includes/layout.php';
+require_role('student');
 
-include('db.php');
-
-// Fetch current date
-date_default_timezone_set('Europe/Tirane');
+$student_id = current_user_id();
 $current_date = date('Y-m-d');
 
-// Fetch subjects from the database
-$subjects_query = "SELECT * FROM subjects";
-$subjects_result = $conn->query($subjects_query);
+// Emri dhe klasa e nxënësit
+$stmt = $conn->prepare(
+    'SELECT users.username, classes.class_name
+     FROM users
+     JOIN student_class ON users.user_id = student_class.student_id
+     JOIN classes ON student_class.class_id = classes.class_id
+     WHERE users.user_id = ?'
+);
+$stmt->bind_param('i', $student_id);
+$stmt->execute();
+$student_data = $stmt->get_result()->fetch_assoc()
+    ?: ['username' => '', 'class_name' => 'Pa klasë'];
 
-// Fetch student's name and class
-$student_id = $_SESSION['user_id'];
-$student_query = "SELECT users.username, classes.class_name 
-                  FROM users 
-                  JOIN student_class ON users.user_id = student_class.student_id 
-                  JOIN classes ON student_class.class_id = classes.class_id 
-                  WHERE users.user_id = $student_id";
-$student_result = $conn->query($student_query);
-$student_data = $student_result->fetch_assoc();
+$success_message = null;
+$info_message = null;
 
-// Handle grade submission
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['grades']) && is_array($_POST['grades']) && !empty($_POST['grades'])) {
-        $grades = $_POST['grades'];
-        $grade_inserted = false; // Flag to track if any grade was inserted
+// Dërgimi i vetëvlerësimit
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_check();
+
+    $grades = $_POST['grades'] ?? [];
+    $valid_grades = ['A', 'B', 'C', 'D', 'E'];
+    $grade_inserted = false;
+    $already_graded = false;
+
+    if (is_array($grades) && !empty($grades)) {
+        $insert_stmt = $conn->prepare(
+            'INSERT INTO self_grades (student_id, subject_id, grade_date, grade, is_approved) VALUES (?, ?, ?, ?, 0)'
+        );
 
         foreach ($grades as $subject_id => $grade) {
-            if (empty($grade)) {
+            if (!in_array($grade, $valid_grades, true)) {
                 continue;
             }
-
-            $check_stmt = $conn->prepare("SELECT grade_id FROM self_grades WHERE student_id = ? AND subject_id = ? AND grade_date = ?");
-            $check_stmt->bind_param("iis", $student_id, $subject_id, $current_date);
-            $check_stmt->execute();
-            $check_result = $check_stmt->get_result();
-
-            if ($check_result->num_rows == 0) {
-                $insert_stmt = $conn->prepare("INSERT INTO self_grades (student_id, subject_id, grade_date, grade, is_approved) VALUES (?, ?, ?, ?, ?)");
-                if (!$insert_stmt) {
-                    die("Prepare failed: " . $conn->error);
-                }
-
-                $is_approved = 0;
-
-                $insert_stmt->bind_param("iissi", $student_id, $subject_id, $current_date, $grade, $is_approved);
-
-                if ($insert_stmt->execute()) {
-                    $grade_inserted = true; // Mark that a grade was inserted
+            $subject_id = (int) $subject_id;
+            try {
+                $insert_stmt->bind_param('iiss', $student_id, $subject_id, $current_date, $grade);
+                $insert_stmt->execute();
+                $grade_inserted = true;
+            } catch (mysqli_sql_exception $e) {
+                // Çelësi unik në bazë garanton një vlerësim në ditë për lëndë
+                if ($e->getCode() === 1062) {
+                    $already_graded = true;
                 } else {
-                    die("Error executing query: " . $insert_stmt->error);
+                    throw $e;
                 }
-            } else {
-                echo "<script>alert('Ju keni bërë vlerësimin e kësaj lënde për ditën e sotme.');</script>";
             }
         }
 
         if ($grade_inserted) {
-            $success_message = "Notat u dërguan me sukses në vetëvlerësim!";
+            $success_message = 'Notat u dërguan me sukses në vetëvlerësim!';
+        }
+        if ($already_graded) {
+            $info_message = 'Disa lëndë i keni vlerësuar tashmë për ditën e sotme.';
         }
     } else {
-        echo "<script>alert('Nuk është dërguar asnjë notë! Ju lutem, përzgjidhni notat.');</script>";
+        $info_message = 'Nuk është dërguar asnjë notë! Ju lutem, përzgjidhni notat.';
     }
 }
 
+$subjects_result = $conn->query('SELECT subject_id, subject_name FROM subjects ORDER BY subject_name');
+
+page_header('Lista e Kontrollit - Vetëvlerësim');
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista e Kontrollit - Vetëvlerësim</title>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-<div class="menu">
-        <li><a href="logout.php">
-        <span class="material-symbols-outlined icons">
-                        <span>logout</span>
-                        </span>
-                        <span>Çkyçu</span></a>
-                    </li>
-        </div>
 <div class="student-container">
     <h1>Lista e Kontrollit - Vetëvlerësim</h1>
     <button class="grade-info" onclick="toggleInfo('grades')">Info për notimin</button>
     <button class="discipline-info" onclick="toggleInfo('discipline')">Disiplina</button>
     <button class="forget-info" onclick="toggleInfo('forget')">Mjetet e punës</button>
-    <div class="info-div">
-        </div>
-            <script>
-function toggleInfo(type) {
-    var infoDiv = document.querySelector('.info-div');
-    var gradeButton = document.querySelector('.grade-info');
-    var disciplineButton = document.querySelector('.discipline-info');
-    var forgetButton = document.querySelector('.forget-info');
+    <div class="info-div"></div>
+    <script>
+        const infoCards = {
+            grades: [
+                'Plotësisht kam kuptuar mësimin /detyrat, rrallëherë marr sqarime.',
+                'Pothuajse plotësisht kam kuptuar mësimin /detyrat, nganjëherë marr sqarime.',
+                'Mesatarisht kam kuptuar mësimin /detyrat, disa herë marr sqarime.',
+                'Pjesërisht kam kuptuar mësimin /detyrat, shpeshherë marr sqarime.',
+                'Pothuajse pjesërisht kam kuptuar mësimin /detyrat, shumë herë marr sqarime.'
+            ],
+            discipline: [
+                'Rrallëherë më tërhiqet vërejtja për koncentrim dhe të folurit pa leje. (1 herë)',
+                'Nganjëherë më tërhiqet vërejtja për koncentrim dhe të folurit pa leje. (2-3 herë)',
+                'Disa herë më tërhiqet vërejtja për koncentrim dhe të folurit pa leje. (4-5 herë)',
+                'Shpeshherë më tërhiqet vërejtja për koncentrim dhe të folurit pa leje. (6-7 herë)',
+                'Shumë herë më tërhiqet vërejtja për koncentrim dhe të folurit pa leje. (8+ herë)'
+            ],
+            forget: [
+                'Nuk i harroj mjetet e punës për mësim.',
+                'I harroj mjetet e punës për mësim. (lapsin / gomën)',
+                'I harroj mjetet e punës për mësim. (bllokun/ ngjyrat/ pentagramin)',
+                'I harroj mjetet e punës për mësim. (librin/ fletoren/ vizoren / kompasin)',
+                'I harroj mjetet e punës për mësim. (librat / fletoret/ portfolion)'
+            ]
+        };
+        const buttonLabels = { grades: 'Info për notimin', discipline: 'Disiplina', forget: 'Mjetet e punës' };
+        const buttons = {
+            grades: document.querySelector('.grade-info'),
+            discipline: document.querySelector('.discipline-info'),
+            forget: document.querySelector('.forget-info')
+        };
 
-    if (type === 'grades') {
-        if (!gradeButton.classList.contains("active")) {
-            infoDiv.style.display = "flex";
-            gradeButton.textContent = "X";
-            gradeButton.classList.add("active");
+        function toggleInfo(type) {
+            const infoDiv = document.querySelector('.info-div');
+            const wasActive = buttons[type].classList.contains('active');
 
-            disciplineButton.style.display = "block";
-            disciplineButton.classList.remove("active");
-            disciplineButton.textContent = "Disiplina";
+            Object.keys(buttons).forEach(key => {
+                buttons[key].classList.remove('active');
+                buttons[key].textContent = buttonLabels[key];
+            });
 
-            forgetButton.style.display = "block";
-            forgetButton.classList.remove("active");
-            forgetButton.textContent = "Mjetet e punës";
+            if (wasActive) {
+                infoDiv.style.display = 'none';
+                return;
+            }
 
-            infoDiv.innerHTML = `
-                <div class="card-1">
-                    <h2>A</h2>
-                    <p>Plotësisht kam kuptuar mësimin /detyrat, rrallëherë marr sqarime.</p>
-                </div>
-                <div class="card-2">
-                    <h2>B</h2>
-                    <p>Pothuajse plotësisht kam kuptuar mësimin /detyrat, nganjëherë marr sqarime.</p>
-                </div>
-                <div class="card-3">
-                    <h2>C</h2>
-                    <p>Mesatarisht kam kuptuar mësimin /detyrat, disa herë marr sqarime.</p>
-                </div>
-                <div class="card-4">
-                    <h2>D</h2>
-                    <p>Pjesërisht kam kuptuar mësimin /detyrat, shpeshherë marr sqarime.</p>
-                </div>
-                <div class="card-5">
-                    <h2>E</h2>
-                    <p>Pothuajse pjesërisht kam kuptuar mësimin /detyrat, shumë herë marr sqarime.</p>
-                </div>
-            `;
-        } else {
-            infoDiv.style.display = "none";
-            gradeButton.textContent = "Info për notimin";
-            gradeButton.classList.remove("active");
+            buttons[type].classList.add('active');
+            buttons[type].textContent = 'X';
+            infoDiv.innerHTML = infoCards[type].map((text, i) =>
+                `<div class="card-${i + 1}"><h2>${'ABCDE'[i]}</h2><p>${text}</p></div>`
+            ).join('');
+            infoDiv.style.display = 'flex';
         }
-    } else if (type === 'discipline') {
-        if (!disciplineButton.classList.contains("active")) {
-            infoDiv.style.display = "flex";
-            disciplineButton.textContent = "X";
-            disciplineButton.classList.add("active");
+    </script>
 
-            gradeButton.textContent = "Info për notimin";
-            gradeButton.classList.remove("active");
-
-            forgetButton.textContent = "Mjetet e punës";
-            forgetButton.classList.remove("active");
-
-            infoDiv.innerHTML = `
-                <div class="card-1">
-                    <h2>A</h2>
-                    <p>Rrallëherë më tërhiqet vërejtja për koncentrim dhe të folurit pa leje. (1 herë)</p>
-                </div>
-                <div class="card-2">
-                    <h2>B</h2>
-                    <p>Nganjëherë më tërhiqet vërejtja për koncentrim dhe të folurit pa leje. (2-3 herë)</p>
-                </div>
-                <div class="card-3">
-                    <h2>C</h2>
-                    <p>Disa herë më tërhiqet vërejtja për koncentrim dhe të folurit pa leje. (4-5 herë)</p>
-                </div>
-                <div class="card-4">
-                    <h2>D</h2>
-                    <p>Shpeshherë më tërhiqet vërejtja për koncentrim dhe të folurit pa leje. (6-7 herë)</p>
-                </div>
-                <div class="card-5">
-                    <h2>E</h2>
-                    <p>Shumë herë më tërhiqet vërejtja për koncentrim dhe të folurit pa leje. (8+ herë)</p>
-                </div>
-            `;
-        } else {
-            infoDiv.style.display = "none";
-            disciplineButton.textContent = "Disiplina";
-            disciplineButton.classList.remove("active");
-        }
-    } else if (type === 'forget') {
-        if (!forgetButton.classList.contains("active")) {
-            infoDiv.style.display = "flex";
-            forgetButton.textContent = "X";
-            forgetButton.classList.add("active");
-
-            gradeButton.textContent = "Info për notimin";
-            gradeButton.classList.remove("active");
-
-            disciplineButton.textContent = "Disiplina";
-            disciplineButton.classList.remove("active");
-
-            infoDiv.innerHTML = `
-                <div class="card-1">
-                    <h2>A</h2>
-                    <p>Nuk i harroj mjetet e punës për mësim.</p>
-                </div>
-                <div class="card-2">
-                    <h2>B</h2>
-                    <p>I harroj mjetet e punës për mësim. (lapsin / gomën)</p>
-                </div>
-                <div class="card-3">
-                    <h2>C</h2>
-                    <p>I harroj mjetet e punës për mësim. (bllokun/ ngjyrat/ pentagramin)</p>
-                </div>
-                <div class="card-4">
-                    <h2>D</h2>
-                    <p>I harroj mjetet e punës për mësim. (librin/ fletoren/ vizoren / kompasin)</p>
-                </div>
-                <div class="card-5">
-                    <h2>E</h2>
-                    <p>I harroj mjetet e punës për mësim. (librat / fletoret/ portfolion)</p>
-                </div>
-            `;
-        } else {
-            infoDiv.style.display = "none";
-            forgetButton.textContent = "Mjetet e punës";
-            forgetButton.classList.remove("active");
-        }
-    }
-}
-
-</script>
-    <?php if (isset($success_message)): ?>
-        <p style="color: green; font-weight: bold;"> <?= $success_message ?> </p>
+    <?php if ($success_message !== null): ?>
+        <p class="success-message"><?= e($success_message) ?></p>
+    <?php endif; ?>
+    <?php if ($info_message !== null): ?>
+        <p class="error"><?= e($info_message) ?></p>
     <?php endif; ?>
 
     <form method="POST">
+        <?= csrf_field() ?>
         <div class="student-info">
-            <p>Emri dhe Mbiemri: <?= $student_data['username'] ?> </p>
-            <p> Klasa: <?= $student_data['class_name'] ?></p>
+            <p>Emri dhe Mbiemri: <?= e($student_data['username']) ?></p>
+            <p>Klasa: <?= e($student_data['class_name']) ?></p>
         </div>
         <div class="table-responsive">
-        <table class="student-table">
-            <thead>
-            <tr>
-                <th rowspan="2">Lënda</th>
-                <th colspan="5">Ngjyrat e Legos</th>
-            </tr>
-            <tr class="header-row">
-                <th class="grade-a">A</th>
-                <th class="grade-b">B</th>
-                <th class="grade-c">C</th>
-                <th class="grade-d">D</th>
-                <th class="grade-e">E</th>
-            </tr>
-            </thead>
-            <tbody>
-            <?php while ($subject = $subjects_result->fetch_assoc()): ?>
-                <tr>
-                    <td><?= $subject['subject_name'] ?></td>
-                    <td><input type="radio" name="grades[<?= $subject['subject_id'] ?>]" value="A"></td>
-                    <td><input type="radio" name="grades[<?= $subject['subject_id'] ?>]" value="B"></td>
-                    <td><input type="radio" name="grades[<?= $subject['subject_id'] ?>]" value="C"></td>
-                    <td><input type="radio" name="grades[<?= $subject['subject_id'] ?>]" value="D"></td>
-                    <td><input type="radio" name="grades[<?= $subject['subject_id'] ?>]" value="E"></td>
-                </tr>
-            <?php endwhile; ?>
-            </tbody>
-        </table>
+            <table class="student-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2">Lënda</th>
+                        <th colspan="5">Ngjyrat e Legos</th>
+                    </tr>
+                    <tr class="header-row">
+                        <th class="grade-a">A</th>
+                        <th class="grade-b">B</th>
+                        <th class="grade-c">C</th>
+                        <th class="grade-d">D</th>
+                        <th class="grade-e">E</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php while ($subject = $subjects_result->fetch_assoc()): ?>
+                        <tr>
+                            <td><?= e($subject['subject_name']) ?></td>
+                            <?php foreach (['A', 'B', 'C', 'D', 'E'] as $g): ?>
+                                <td><input type="radio" name="grades[<?= (int) $subject['subject_id'] ?>]" value="<?= $g ?>"></td>
+                            <?php endforeach; ?>
+                        </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
         </div>
 
         <button class="student-button" type="submit">Përfundo</button>
     </form>
 </div>
-</body>
-</html>
+<?php page_footer(); ?>
