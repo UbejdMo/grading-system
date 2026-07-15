@@ -13,9 +13,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
     $role = $_POST['role'] ?? '';
 
     if ($username === '' || $password === '' || !in_array($role, ['teacher', 'student', 'parent'], true)) {
-        $error_message = 'Plotësoni të gjitha fushat dhe zgjidhni një rol valid.';
+        $error_message = t('add.err_fields');
     } elseif (($role === 'teacher' || $role === 'student') && empty($_POST['class_id'])) {
-        $error_message = 'Zgjidhni klasën për mësuesin/nxënësin.';
+        $error_message = t('add.err_class');
     } else {
         try {
             $conn->begin_transaction();
@@ -47,12 +47,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             }
 
             $conn->commit();
-            $success_message = "Përdoruesi \"$username\" u shtua me sukses!";
+            $success_message = sprintf(t('add.success'), $username);
         } catch (mysqli_sql_exception $e) {
             $conn->rollback();
             $error_message = $e->getCode() === 1062
-                ? 'Ky emër përdoruesi ekziston tashmë.'
-                : 'Gabim gjatë ruajtjes së përdoruesit.';
+                ? t('add.err_exists')
+                : t('add.err_save');
         }
     }
 }
@@ -70,13 +70,13 @@ $students_result = $conn->query(
      ORDER BY u.username"
 );
 
-page_header('Shto Përdorues', [
-    ['href' => 'admin_dashboard.php', 'icon' => 'shield_person', 'label' => 'Paneli'],
-    ['href' => 'manage_users.php', 'icon' => 'group', 'label' => 'Përdoruesit'],
+page_header(t('add.title'), [
+    ['href' => 'admin_dashboard.php', 'icon' => 'shield_person', 'label' => t('nav.panel')],
+    ['href' => 'manage_users.php', 'icon' => 'group', 'label' => t('nav.users')],
 ]);
 ?>
 <div class="card" style="max-width: 640px; margin-left: auto; margin-right: auto;">
-    <h1>Shto Përdorues</h1>
+    <h1><?= e(t('add.title')) ?></h1>
 
     <?php if ($success_message !== null): ?>
         <p class="success-message"><?= e($success_message) ?></p>
@@ -88,37 +88,37 @@ page_header('Shto Përdorues', [
     <form method="POST">
         <?= csrf_field() ?>
         <div class="form-row">
-            <label for="role">Roli:</label>
+            <label for="role"><?= e(t('add.role')) ?></label>
             <select name="role" id="role" onchange="updateForm()" required>
-                <option value="">Zgjedh Rolin</option>
-                <option value="teacher">Mësues</option>
-                <option value="student">Nxënës</option>
-                <option value="parent">Prind</option>
+                <option value=""><?= e(t('add.select_role')) ?></option>
+                <option value="teacher"><?= e(t('role.teacher')) ?></option>
+                <option value="student"><?= e(t('role.student')) ?></option>
+                <option value="parent"><?= e(t('role.parent')) ?></option>
             </select>
         </div>
 
         <div class="form-row">
-            <label for="username">Përdoruesi:</label>
-            <input placeholder="Përdoruesi" type="text" name="username" id="username" required>
+            <label for="username"><?= e(t('add.username')) ?></label>
+            <input type="text" name="username" id="username" required>
         </div>
         <div class="form-row">
-            <label for="password">Fjalëkalimi:</label>
-            <input placeholder="Fjalëkalimi" type="password" name="password" id="password" required>
+            <label for="password"><?= e(t('add.password')) ?></label>
+            <input type="password" name="password" id="password" required>
         </div>
 
         <!-- Për prindër: lidhja me nxënës -->
         <div id="student_select">
             <div class="form-row">
-                <label for="filter_class_parent">Filtro sipas klasës:</label>
+                <label for="filter_class_parent"><?= e(t('users.filter_class')) ?></label>
                 <select id="filter_class_parent" onchange="filterParentStudents()">
-                    <option value="">Të gjitha klasat</option>
+                    <option value=""><?= e(t('users.all_classes')) ?></option>
                     <?php foreach ($classes as $class): ?>
                         <option value="<?= (int) $class['class_id'] ?>"><?= e($class['class_name']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
 
-            <label>Nxënësit e ndërlidhur:</label>
+            <label><?= e(t('add.linked_students')) ?></label>
             <div id="students_list"></div>
 
             <div class="student-picker">
@@ -137,7 +137,7 @@ page_header('Shto Përdorues', [
         <!-- Për mësues/nxënës: klasa -->
         <div id="class_select">
             <div class="form-row">
-                <label for="class_id">Klasa:</label>
+                <label for="class_id"><?= e(t('add.class')) ?></label>
                 <select name="class_id" id="class_id">
                     <?php foreach ($classes as $class): ?>
                         <option value="<?= (int) $class['class_id'] ?>"><?= e($class['class_name']) ?></option>
@@ -146,7 +146,7 @@ page_header('Shto Përdorues', [
             </div>
         </div>
 
-        <button class="admin-button" type="submit" name="add_user">Shto Përdorues</button>
+        <button class="admin-button" type="submit" name="add_user"><?= e(t('add.submit')) ?></button>
     </form>
 </div>
 

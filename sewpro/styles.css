@@ -167,6 +167,47 @@ h3 { font-size: 1.02rem; margin: 1.6rem 0 0.6rem; }
 
 .menu .icons { font-size: 1.2rem; }
 
+/* Ndërruesi i gjuhës AL | EN */
+.lang-switch {
+    display: inline-flex;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    margin-left: 0.35rem;
+}
+
+.lang-option {
+    padding: 0.42rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.75);
+    transition: all 0.2s ease;
+}
+
+.lang-option:hover { color: #fff; background: rgba(255, 255, 255, 0.10); }
+
+.lang-option.active {
+    background: var(--gradient-primary);
+    color: #fff;
+}
+
+/* Në faqen e kyçjes (sfond i bardhë) */
+.login-lang {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.75rem;
+}
+
+.login-lang .lang-switch { border-color: var(--border); }
+
+.login-lang .lang-option { color: var(--text-muted); }
+
+.login-lang .lang-option:hover { color: var(--primary-dark); background: var(--primary-soft); }
+
+.login-lang .lang-option.active { color: #fff; }
+
 /* Numëratori i mbylljes së orarit */
 .session-timer {
     display: flex;
@@ -604,6 +645,61 @@ form textarea:focus {
 }
 
 .login-container .admin-button { width: 100%; padding: 0.85rem; font-size: 1rem; }
+
+/* Llogaritë demo në faqen e kyçjes */
+.demo-accounts {
+    margin-top: 1.6rem;
+    padding-top: 1.3rem;
+    border-top: 1px dashed var(--border);
+}
+
+.demo-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 0.8rem;
+}
+
+.demo-title .material-symbols-outlined { font-size: 1.15rem; color: var(--primary); }
+
+.demo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+}
+
+.demo-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.65rem 0.5rem;
+    background: #f8fafd;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font: inherit;
+    transition: all 0.2s ease;
+}
+
+.demo-chip:hover {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(13, 148, 136, 0.18);
+}
+
+.demo-chip .material-symbols-outlined { font-size: 1.5rem; color: var(--primary); }
+
+.demo-role { font-size: 0.82rem; font-weight: 700; color: var(--text); }
+
+.demo-cred { font-size: 0.74rem; color: var(--text-muted); font-weight: 500; }
 
 /* ============ Moduli i nxënësit ============ */
 .student-container {

@@ -27,18 +27,18 @@ if ($selected_student_id && !isset($children[$selected_student_id])) {
     $selected_student_id = 0;
 }
 
-page_header('Notat Përfundimtare', [
-    ['href' => 'parent_dashboard.php', 'icon' => 'arrow_back', 'label' => 'Kthehu'],
+page_header(t('fg.title'), [
+    ['href' => 'parent_dashboard.php', 'icon' => 'arrow_back', 'label' => t('nav.back')],
 ]);
 ?>
 <div class="card">
-    <h1>Notat Përfundimtare</h1>
+    <h1><?= e(t('fg.title')) ?></h1>
 
     <form method="GET">
         <div class="form-row">
-            <label for="student_id">Zgjedh fëmijën tuaj:</label>
+            <label for="student_id"><?= e(t('parent.select_child')) ?></label>
             <select name="student_id" id="student_id" onchange="this.form.submit()">
-                <option value="">Zgjedh nxënësin</option>
+                <option value=""><?= e(t('fg.select_placeholder')) ?></option>
                 <?php foreach ($children as $id => $name): ?>
                     <option value="<?= $id ?>" <?= $selected_student_id === $id ? 'selected' : '' ?>>
                         <?= e($name) ?>
@@ -49,7 +49,7 @@ page_header('Notat Përfundimtare', [
     </form>
 
     <?php if ($selected_student_id): ?>
-        <h2>Vlerësimet për: <?= e($children[$selected_student_id]) ?></h2>
+        <h2><?= e(t('fg.grades_for')) ?> <?= e($children[$selected_student_id]) ?></h2>
         <?php render_student_grades($conn, $selected_student_id); ?>
     <?php endif; ?>
 </div>

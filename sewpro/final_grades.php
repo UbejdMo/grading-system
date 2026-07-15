@@ -30,19 +30,19 @@ if ($selected_student_id && !isset($students[$selected_student_id])) {
     $selected_student_id = 0;
 }
 
-page_header('Notat Përfundimtare', [
-    ['href' => 'teacher_dashboard.php', 'icon' => 'arrow_back', 'label' => 'Kthehu'],
+page_header(t('fg.title'), [
+    ['href' => 'teacher_dashboard.php', 'icon' => 'arrow_back', 'label' => t('nav.back')],
 ]);
 ?>
 <div class="card">
-    <h1>Notat Përfundimtare</h1>
-    <p class="muted">Mesataret mujore llogariten nga notat ditore të aprovuara, nota e gjysmëvjetorit nga mesataret mujore, dhe nota vjetore nga dy gjysmëvjetorët.</p>
+    <h1><?= e(t('fg.title')) ?></h1>
+    <p class="muted"><?= e(t('fg.intro')) ?></p>
 
     <form method="GET">
         <div class="form-row">
-            <label for="student_id">Zgjedh nxënësin:</label>
+            <label for="student_id"><?= e(t('fg.select_student')) ?></label>
             <select name="student_id" id="student_id" onchange="this.form.submit()">
-                <option value="">Zgjedh nxënësin</option>
+                <option value=""><?= e(t('fg.select_placeholder')) ?></option>
                 <?php foreach ($students as $id => $student): ?>
                     <option value="<?= $id ?>" <?= $selected_student_id === $id ? 'selected' : '' ?>>
                         <?= e($student['username']) ?> (<?= e($student['class_name']) ?>)
@@ -53,7 +53,7 @@ page_header('Notat Përfundimtare', [
     </form>
 
     <?php if ($selected_student_id): ?>
-        <h2>Vlerësimet për: <?= e($students[$selected_student_id]['username']) ?></h2>
+        <h2><?= e(t('fg.grades_for')) ?> <?= e($students[$selected_student_id]['username']) ?></h2>
         <?php render_student_grades($conn, $selected_student_id); ?>
     <?php endif; ?>
 </div>

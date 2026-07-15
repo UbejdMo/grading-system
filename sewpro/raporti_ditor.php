@@ -42,18 +42,18 @@ if ($selected_student_id) {
     $daily_grades = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
-page_header('Raporti Ditor', [
-    ['href' => 'parent_dashboard.php', 'icon' => 'arrow_back', 'label' => 'Kthehu'],
+page_header(t('daily.title'), [
+    ['href' => 'parent_dashboard.php', 'icon' => 'arrow_back', 'label' => t('nav.back')],
 ]);
 ?>
 <div class="card">
-    <h1>Raporti Ditor i Notave</h1>
+    <h1><?= e(t('daily.title')) ?></h1>
 
     <form method="GET">
         <div class="form-row">
-            <label for="student_id">Zgjedh nxënësin:</label>
+            <label for="student_id"><?= e(t('fg.select_student')) ?></label>
             <select name="student_id" id="student_id" onchange="this.form.submit()">
-                <option value="">-- Zgjedh --</option>
+                <option value=""><?= e(t('daily.select')) ?></option>
                 <?php foreach ($children as $id => $name): ?>
                     <option value="<?= $id ?>" <?= $selected_student_id === $id ? 'selected' : '' ?>>
                         <?= e($name) ?>
@@ -64,13 +64,13 @@ page_header('Raporti Ditor', [
     </form>
 
     <?php if ($selected_student_id): ?>
-        <h3>Vlerësimi për datën: <?= e(date('d.m.Y')) ?></h3>
+        <h3><?= e(t('daily.for_date')) ?> <?= e(date('d.m.Y')) ?></h3>
         <div class="table-responsive">
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Lënda</th>
-                        <th>Nota e ditës</th>
+                        <th><?= e(t('grades.subject')) ?></th>
+                        <th><?= e(t('daily.day_grade')) ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -87,7 +87,7 @@ page_header('Raporti Ditor', [
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="2" class="muted">Nuk ka nota të aprovuara për sot.</td>
+                            <td colspan="2" class="muted"><?= e(t('daily.none')) ?></td>
                         </tr>
                     <?php endif; ?>
                 </tbody>

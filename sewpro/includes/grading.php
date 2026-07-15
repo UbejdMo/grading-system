@@ -12,11 +12,6 @@ require_once __DIR__ . '/../config.php';
 
 const GRADE_POINTS = ['A' => 5, 'B' => 4, 'C' => 3, 'D' => 2, 'E' => 1];
 
-const ALBANIAN_MONTHS = [
-    1 => 'Janar', 2 => 'Shkurt', 3 => 'Mars', 4 => 'Prill', 5 => 'Maj', 6 => 'Qershor',
-    7 => 'Korrik', 8 => 'Gusht', 9 => 'Shtator', 10 => 'Tetor', 11 => 'Nëntor', 12 => 'Dhjetor',
-];
-
 /** Konverton mesataren numerike (1-5) në notë shkronjë me rrumbullakim standard. */
 function points_to_letter(float $avg): string
 {

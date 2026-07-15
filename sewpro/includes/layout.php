@@ -10,10 +10,10 @@ require_once __DIR__ . '/auth.php';
  */
 function page_header(string $title, array $nav = []): void
 {
-    $nav[] = ['href' => 'logout.php', 'icon' => 'logout', 'label' => 'Çkyçu'];
+    $nav[] = ['href' => 'logout.php', 'icon' => 'logout', 'label' => t('nav.logout')];
     ?>
 <!DOCTYPE html>
-<html lang="sq">
+<html lang="<?= e(current_lang()) ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -38,6 +38,7 @@ function page_header(string $title, array $nav = []): void
                     <span><?= e($item['label']) ?></span>
                 </a>
             <?php endforeach; ?>
+            <?= lang_switch_html() ?>
         </nav>
     </div>
 </header>
@@ -50,6 +51,7 @@ function page_header(string $title, array $nav = []): void
         let remaining = <?= (int) $remaining ?>;
         const chip = document.getElementById('session-timer');
         const text = document.getElementById('session-timer-text');
+        const label = <?= json_encode(t('timer.closes')) ?>;
 
         function tick() {
             if (remaining <= 0) {
@@ -61,7 +63,7 @@ function page_header(string $title, array $nav = []): void
                 chip.hidden = false;
                 const m = Math.floor(remaining / 60);
                 const s = remaining % 60;
-                text.textContent = 'Orari mbyllet për ' + m + ':' + String(s).padStart(2, '0');
+                text.textContent = label + ' ' + m + ':' + String(s).padStart(2, '0');
                 if (remaining <= 300) {
                     chip.classList.add('urgent');
                 }
@@ -82,7 +84,7 @@ function page_footer(): void
     ?>
 </main>
 <footer class="footer">
-    <p>&copy; <?= date('Y') ?> Sistemi i Vetëvlerësimit. Të gjitha të drejtat janë të rezervuara.</p>
+    <p>&copy; <?= date('Y') ?> <?= e(t('footer.rights')) ?></p>
 </footer>
 </body>
 </html>

@@ -2,7 +2,12 @@
 require_once __DIR__ . '/includes/layout.php';
 require_role('admin');
 
-$roles_shqip = ['admin' => 'Administrator', 'teacher' => 'Mësues', 'student' => 'Nxënës', 'parent' => 'Prind'];
+$roles_shqip = [
+    'admin' => t('role.admin'),
+    'teacher' => t('role.teacher'),
+    'student' => t('role.student'),
+    'parent' => t('role.parent'),
+];
 $success_message = null;
 $error_message = null;
 
@@ -12,14 +17,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
     $user_id = (int) $_POST['user_id'];
 
     if ($user_id === current_user_id()) {
-        $error_message = 'Nuk mund ta fshini llogarinë tuaj.';
+        $error_message = t('users.cant_self');
     } else {
         $stmt = $conn->prepare('DELETE FROM users WHERE user_id = ?');
         $stmt->bind_param('i', $user_id);
         $stmt->execute();
         $success_message = $stmt->affected_rows > 0
-            ? 'Përdoruesi u fshi me sukses!'
-            : 'Përdoruesi nuk u gjet.';
+            ? t('users.deleted')
+            : t('users.notfound');
     }
 }
 
@@ -67,12 +72,12 @@ if ($params) {
 $stmt->execute();
 $users_result = $stmt->get_result();
 
-page_header('Menaxho Përdorues', [
-    ['href' => 'admin_dashboard.php', 'icon' => 'shield_person', 'label' => 'Paneli'],
+page_header(t('admin.users'), [
+    ['href' => 'admin_dashboard.php', 'icon' => 'shield_person', 'label' => t('nav.panel')],
 ]);
 ?>
 <div class="card">
-    <h1>Menaxho Përdorues</h1>
+    <h1><?= e(t('admin.users')) ?></h1>
 
     <?php if ($success_message !== null): ?>
         <p class="success-message"><?= e($success_message) ?></p>
@@ -83,9 +88,9 @@ page_header('Menaxho Përdorues', [
 
     <form method="GET" style="flex-direction: row; flex-wrap: wrap; align-items: flex-end; gap: 1rem;">
         <div class="form-row" style="flex: 1; min-width: 160px;">
-            <label for="class_id">Filtro sipas klasës:</label>
+            <label for="class_id"><?= e(t('users.filter_class')) ?></label>
             <select name="class_id" id="class_id" onchange="this.form.submit()">
-                <option value="">Të gjitha klasat</option>
+                <option value=""><?= e(t('users.all_classes')) ?></option>
                 <?php while ($class = $classes_result->fetch_assoc()): ?>
                     <option value="<?= (int) $class['class_id'] ?>" <?= $class_id_filter === (int) $class['class_id'] ? 'selected' : '' ?>>
                         <?= e($class['class_name']) ?>
@@ -94,9 +99,9 @@ page_header('Menaxho Përdorues', [
             </select>
         </div>
         <div class="form-row" style="flex: 1; min-width: 160px;">
-            <label for="role">Filtro sipas rolit:</label>
+            <label for="role"><?= e(t('users.filter_role')) ?></label>
             <select name="role" id="role" onchange="this.form.submit()">
-                <option value="">Të gjitha rolet</option>
+                <option value=""><?= e(t('users.all_roles')) ?></option>
                 <?php foreach ($roles_shqip as $role_key => $role_name): ?>
                     <option value="<?= $role_key ?>" <?= $role_filter === $role_key ? 'selected' : '' ?>>
                         <?= e($role_name) ?>
@@ -105,7 +110,7 @@ page_header('Menaxho Përdorues', [
             </select>
         </div>
         <a class="btn" href="add_users.php" style="text-decoration: none;">
-            <span class="material-symbols-outlined">person_add</span> Shto Përdorues
+            <span class="material-symbols-outlined">person_add</span> <?= e(t('users.add')) ?>
         </a>
     </form>
 
@@ -113,10 +118,10 @@ page_header('Menaxho Përdorues', [
         <table class="admin-table">
             <thead>
                 <tr>
-                    <th>Përdoruesi</th>
-                    <th>Roli</th>
-                    <th>Klasa</th>
-                    <th>Veprimet</th>
+                    <th><?= e(t('users.user')) ?></th>
+                    <th><?= e(t('users.role')) ?></th>
+                    <th><?= e(t('users.class')) ?></th>
+                    <th><?= e(t('users.actions')) ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -127,12 +132,12 @@ page_header('Menaxho Përdorues', [
                         <td><?= $user['class_names'] !== null ? e($user['class_names']) : '<span class="muted">&mdash;</span>' ?></td>
                         <td>
                             <div class="actions-cell">
-                                <a class="btn btn-small" href="edit_users.php?user_id=<?= (int) $user['user_id'] ?>" style="text-decoration: none;">Modifiko</a>
+                                <a class="btn btn-small" href="edit_users.php?user_id=<?= (int) $user['user_id'] ?>" style="text-decoration: none;"><?= e(t('users.edit')) ?></a>
                                 <?php if ((int) $user['user_id'] !== current_user_id()): ?>
-                                    <form method="POST" onsubmit="return confirm('A jeni të sigurt se dëshironi ta fshini përdoruesin <?= e($user['username']) ?>?');" style="display: inline;">
+                                    <form method="POST" onsubmit="return confirm(<?= e(json_encode(sprintf(t('users.confirm_delete'), $user['username']), JSON_UNESCAPED_UNICODE)) ?>);" style="display: inline;">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="user_id" value="<?= (int) $user['user_id'] ?>">
-                                        <button type="submit" name="delete_user" class="btn btn-small btn-danger">Fshij</button>
+                                        <button type="submit" name="delete_user" class="btn btn-small btn-danger"><?= e(t('users.delete')) ?></button>
                                     </form>
                                 <?php endif; ?>
                             </div>

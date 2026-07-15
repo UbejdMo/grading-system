@@ -22,11 +22,11 @@ function render_semester_table(array $subjects, array $monthly, array $months, s
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Lënda</th>
+                    <th><?= e(t('grades.subject')) ?></th>
                     <?php foreach ($months as $m): ?>
-                        <th><?= e(ALBANIAN_MONTHS[$m]) ?></th>
+                        <th><?= e(month_name($m)) ?></th>
                     <?php endforeach; ?>
-                    <th>Nota e gjysmëvjetorit</th>
+                    <th><?= e(t('grades.semester_grade')) ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -52,7 +52,7 @@ function render_semester_table(array $subjects, array $monthly, array $months, s
                                     <?= e(format_average($sem)) ?>
                                 </span>
                             <?php else: ?>
-                                <span class="muted">Nuk ka notë</span>
+                                <span class="muted"><?= e(t('no_grade')) ?></span>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -74,18 +74,18 @@ function render_student_grades(mysqli $conn, int $student_id): void
 
     $monthly = monthly_averages($conn, $student_id);
 
-    render_semester_table($subjects, $monthly, SEMESTER_1_MONTHS, 'Gjysmëvjetori i parë (Shtator - Dhjetor)');
-    render_semester_table($subjects, $monthly, SEMESTER_2_MONTHS, 'Gjysmëvjetori i dytë (Janar - Qershor)');
+    render_semester_table($subjects, $monthly, SEMESTER_1_MONTHS, t('grades.semester1'));
+    render_semester_table($subjects, $monthly, SEMESTER_2_MONTHS, t('grades.semester2'));
     ?>
-    <h3>Nota vjetore</h3>
+    <h3><?= e(t('grades.annual')) ?></h3>
     <div class="table-responsive">
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Lënda</th>
-                    <th>Gjysmëvjetori I</th>
-                    <th>Gjysmëvjetori II</th>
-                    <th>Nota vjetore</th>
+                    <th><?= e(t('grades.subject')) ?></th>
+                    <th><?= e(t('grades.sem1_short')) ?></th>
+                    <th><?= e(t('grades.sem2_short')) ?></th>
+                    <th><?= e(t('grades.annual')) ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -100,7 +100,7 @@ function render_student_grades(mysqli $conn, int $student_id): void
                         <td class="subject-name"><?= e($subject_name) ?></td>
                         <td><?= $sem1 !== null ? '<span class="grade-badge grade-' . strtolower(points_to_letter($sem1)) . '">' . e(format_average($sem1)) . '</span>' : '<span class="muted">&mdash;</span>' ?></td>
                         <td><?= $sem2 !== null ? '<span class="grade-badge grade-' . strtolower(points_to_letter($sem2)) . '">' . e(format_average($sem2)) . '</span>' : '<span class="muted">&mdash;</span>' ?></td>
-                        <td><?= $annual !== null ? '<span class="grade-badge grade-' . strtolower(points_to_letter($annual)) . '">' . e(format_average($annual)) . '</span>' : '<span class="muted">Nuk ka notë</span>' ?></td>
+                        <td><?= $annual !== null ? '<span class="grade-badge grade-' . strtolower(points_to_letter($annual)) . '">' . e(format_average($annual)) . '</span>' : '<span class="muted">' . e(t('no_grade')) . '</span>' ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>

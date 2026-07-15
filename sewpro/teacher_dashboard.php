@@ -34,8 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $success_message = $approved_count > 0
-        ? "U aprovuan $approved_count nota me sukses!"
-        : 'Nuk kishte nota të reja për aprovim.';
+        ? sprintf(t('teacher.approved_n'), $approved_count)
+        : t('teacher.none_new');
 }
 
 $subjects_result = $conn->query('SELECT subject_id, subject_name FROM subjects ORDER BY subject_name');
@@ -66,13 +66,13 @@ if ($selected_subject_id) {
     }
 }
 
-page_header('Moduli i Mësuesit', [
-    ['href' => 'final_grades.php', 'icon' => 'grading', 'label' => 'Notat përfundimtare'],
+page_header(t('teacher.title'), [
+    ['href' => 'final_grades.php', 'icon' => 'grading', 'label' => t('teacher.final_nav')],
 ]);
 ?>
 <div class="card">
-    <h1>Moduli i Mësuesit</h1>
-    <p class="muted">Zgjidhni lëndën, kontrolloni vetëvlerësimet e nxënësve dhe zhvendosini me tërheqje (drag &amp; drop) nëse nota nuk është e saktë. Me "Aprovo" notat futen në sistem.</p>
+    <h1><?= e(t('teacher.title')) ?></h1>
+    <p class="muted"><?= e(t('teacher.intro')) ?></p>
 
     <?php if ($success_message !== null): ?>
         <p class="success-message"><?= e($success_message) ?></p>
@@ -80,9 +80,9 @@ page_header('Moduli i Mësuesit', [
 
     <form method="GET">
         <div class="form-row">
-            <label for="subject_id">Zgjedh lëndën:</label>
+            <label for="subject_id"><?= e(t('teacher.select_subject')) ?></label>
             <select name="subject_id" id="subject_id" onchange="this.form.submit()">
-                <option value="">Zgjedh...</option>
+                <option value=""><?= e(t('select.placeholder')) ?></option>
                 <?php while ($subject = $subjects_result->fetch_assoc()): ?>
                     <option value="<?= (int) $subject['subject_id'] ?>" <?= $selected_subject_id === (int) $subject['subject_id'] ? 'selected' : '' ?>>
                         <?= e($subject['subject_name']) ?>
@@ -94,14 +94,14 @@ page_header('Moduli i Mësuesit', [
 
     <?php if ($selected_subject_id): ?>
         <?php if ($pending_count === 0): ?>
-            <p class="muted" style="margin-top: 1rem;">Nuk ka vetëvlerësime në pritje për këtë lëndë.</p>
+            <p class="muted" style="margin-top: 1rem;"><?= e(t('teacher.no_pending')) ?></p>
         <?php else: ?>
             <form method="POST">
                 <?= csrf_field() ?>
                 <div class="drag-container">
                     <?php foreach (['A', 'B', 'C', 'D', 'E'] as $grade): ?>
                         <div class="grade-column" data-grade="<?= $grade ?>" ondrop="drop(event, '<?= $grade ?>')" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
-                            <h3>Nota <?= $grade ?></h3>
+                            <h3><?= e(t('teacher.grade')) ?> <?= $grade ?></h3>
                             <?php foreach ($students_grades[$grade] ?? [] as $entry): ?>
                                 <div id="grade-<?= (int) $entry['grade_id'] ?>" class="student" draggable="true" ondragstart="drag(event)">
                                     <?= e($entry['username']) ?>
@@ -115,7 +115,7 @@ page_header('Moduli i Mësuesit', [
                     <?php endforeach; ?>
                 </div>
 
-                <button class="student-button" type="submit">Aprovo notat</button>
+                <button class="student-button" type="submit"><?= e(t('teacher.approve')) ?></button>
             </form>
         <?php endif; ?>
     <?php endif; ?>

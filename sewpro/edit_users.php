@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_user'])) {
     $role = $_POST['role'] ?? '';
 
     if ($username === '' || !in_array($role, ['admin', 'teacher', 'student', 'parent'], true)) {
-        $error_message = 'Plotësoni emrin e përdoruesit dhe zgjidhni rol valid.';
+        $error_message = t('edit.err_fields');
     } else {
         try {
             // Fjalëkalimi ndryshohet vetëm nëse është shkruar një i ri
@@ -40,11 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_user'])) {
                 $stmt->execute();
             }
 
-            $success_message = 'Përdoruesi u modifikua me sukses!';
+            $success_message = t('edit.success');
         } catch (mysqli_sql_exception $e) {
             $error_message = $e->getCode() === 1062
-                ? 'Ky emër përdoruesi ekziston tashmë.'
-                : 'Gabim gjatë ruajtjes.';
+                ? t('add.err_exists')
+                : t('edit.err_save');
         }
     }
     $_GET['user_id'] = $user_id;
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_child'])) {
     $stmt = $conn->prepare('DELETE FROM parent_student WHERE parent_id = ? AND student_id = ?');
     $stmt->bind_param('ii', $parent_id, $student_id);
     $stmt->execute();
-    $success_message = 'Lidhja e nxënësit me prindin u fshi me sukses!';
+    $success_message = t('edit.unlink_success');
     $_GET['user_id'] = $parent_id;
 }
 
@@ -74,9 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_child'])) {
             $stmt = $conn->prepare('INSERT INTO parent_student (parent_id, student_id) VALUES (?, ?)');
             $stmt->bind_param('ii', $parent_id, $student_id);
             $stmt->execute();
-            $success_message = 'Nxënësi u lidh me prindin me sukses!';
+            $success_message = t('edit.link_success');
         } catch (mysqli_sql_exception $e) {
-            $error_message = 'Ky nxënës është i lidhur tashmë me një prind.';
+            $error_message = t('edit.err_linked');
         }
     }
     $_GET['user_id'] = $parent_id;
@@ -134,13 +134,13 @@ if ($selected_user) {
 
 $classes = $conn->query('SELECT * FROM classes ORDER BY class_name')->fetch_all(MYSQLI_ASSOC);
 
-page_header('Modifiko Përdoruesin', [
-    ['href' => 'admin_dashboard.php', 'icon' => 'shield_person', 'label' => 'Paneli'],
-    ['href' => 'manage_users.php', 'icon' => 'group', 'label' => 'Përdoruesit'],
+page_header(t('edit.title'), [
+    ['href' => 'admin_dashboard.php', 'icon' => 'shield_person', 'label' => t('nav.panel')],
+    ['href' => 'manage_users.php', 'icon' => 'group', 'label' => t('nav.users')],
 ]);
 ?>
 <div class="card" style="max-width: 640px; margin-left: auto; margin-right: auto;">
-    <h1>Modifiko Përdoruesin</h1>
+    <h1><?= e(t('edit.title')) ?></h1>
 
     <?php if ($success_message !== null): ?>
         <p class="success-message"><?= e($success_message) ?></p>
@@ -151,12 +151,12 @@ page_header('Modifiko Përdoruesin', [
 
     <form method="GET">
         <div class="form-row">
-            <label for="user_id">Zgjedh përdoruesin:</label>
+            <label for="user_id"><?= e(t('edit.select_user')) ?></label>
             <select name="user_id" id="user_id" onchange="this.form.submit()">
-                <option value="">Zgjedh Përdoruesin</option>
+                <option value=""><?= e(t('edit.select_placeholder')) ?></option>
                 <?php while ($user = $users_result->fetch_assoc()): ?>
                     <option value="<?= (int) $user['user_id'] ?>" <?= $selected_user_id === (int) $user['user_id'] ? 'selected' : '' ?>>
-                        <?= e($user['username']) ?> (<?= e($user['role']) ?>)
+                        <?= e($user['username']) ?> (<?= e(t('role.' . $user['role'])) ?>)
                     </option>
                 <?php endwhile; ?>
             </select>
@@ -169,25 +169,25 @@ page_header('Modifiko Përdoruesin', [
             <input type="hidden" name="user_id" value="<?= (int) $selected_user['user_id'] ?>">
 
             <div class="form-row">
-                <label for="username">Përdoruesi:</label>
+                <label for="username"><?= e(t('add.username')) ?></label>
                 <input type="text" name="username" id="username" value="<?= e($selected_user['username']) ?>" required>
             </div>
             <div class="form-row">
-                <label for="password">Fjalëkalimi i ri (lëreni bosh për ta mbajtur të vjetrin):</label>
-                <input type="password" name="password" id="password" placeholder="Fjalëkalimi i ri">
+                <label for="password"><?= e(t('edit.password_hint')) ?></label>
+                <input type="password" name="password" id="password" placeholder="<?= e(t('edit.password_placeholder')) ?>">
             </div>
             <div class="form-row">
-                <label for="role">Roli:</label>
+                <label for="role"><?= e(t('add.role')) ?></label>
                 <select name="role" id="role" required>
-                    <?php foreach (['admin' => 'Administrator', 'teacher' => 'Mësues', 'student' => 'Nxënës', 'parent' => 'Prind'] as $role_key => $role_name): ?>
-                        <option value="<?= $role_key ?>" <?= $selected_user['role'] === $role_key ? 'selected' : '' ?>><?= $role_name ?></option>
+                    <?php foreach (['admin', 'teacher', 'student', 'parent'] as $role_key): ?>
+                        <option value="<?= $role_key ?>" <?= $selected_user['role'] === $role_key ? 'selected' : '' ?>><?= e(t('role.' . $role_key)) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
 
             <?php if ($selected_user['role'] === 'teacher' || $selected_user['role'] === 'student'): ?>
                 <div class="form-row">
-                    <label for="class_id">Klasa:</label>
+                    <label for="class_id"><?= e(t('add.class')) ?></label>
                     <select name="class_id" id="class_id">
                         <?php foreach ($classes as $class): ?>
                             <option value="<?= (int) $class['class_id'] ?>" <?= $selected_class_id === (int) $class['class_id'] ? 'selected' : '' ?>>
@@ -198,18 +198,18 @@ page_header('Modifiko Përdoruesin', [
                 </div>
             <?php endif; ?>
 
-            <button class="admin-button" type="submit" name="edit_user">Ruaj ndryshimet</button>
+            <button class="admin-button" type="submit" name="edit_user"><?= e(t('edit.save')) ?></button>
         </form>
 
         <?php if ($selected_user['role'] === 'parent'): ?>
-            <h2>Nxënësit e ndërlidhur</h2>
+            <h2><?= e(t('edit.linked')) ?></h2>
             <?php if ($children): ?>
                 <ul>
                     <?php foreach ($children as $child): ?>
                         <li class="no-style">
                             <?= e($child['username']) ?>
                             <form method="POST" style="display: inline;"
-                                onsubmit="return confirm('Të hiqet lidhja me <?= e($child['username']) ?>?');">
+                                onsubmit="return confirm(<?= e(json_encode(sprintf(t('edit.confirm_unlink'), $child['username']), JSON_UNESCAPED_UNICODE)) ?>);">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="parent_id" value="<?= (int) $selected_user['user_id'] ?>">
                                 <input type="hidden" name="student_id" value="<?= (int) $child['user_id'] ?>">
@@ -219,7 +219,7 @@ page_header('Modifiko Përdoruesin', [
                     <?php endforeach; ?>
                 </ul>
             <?php else: ?>
-                <p class="muted">Ky prind nuk ka nxënës të lidhur.</p>
+                <p class="muted"><?= e(t('edit.none_linked')) ?></p>
             <?php endif; ?>
 
             <?php if ($available_students): ?>
@@ -227,14 +227,14 @@ page_header('Modifiko Përdoruesin', [
                     <?= csrf_field() ?>
                     <input type="hidden" name="parent_id" value="<?= (int) $selected_user['user_id'] ?>">
                     <div class="form-row" style="flex: 1;">
-                        <label for="new_student_id">Lidh nxënës të ri:</label>
+                        <label for="new_student_id"><?= e(t('edit.link_new')) ?></label>
                         <select name="new_student_id" id="new_student_id">
                             <?php foreach ($available_students as $student): ?>
                                 <option value="<?= (int) $student['user_id'] ?>"><?= e($student['username']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <button class="admin-button" type="submit" name="add_child">Lidh</button>
+                    <button class="admin-button" type="submit" name="add_child"><?= e(t('edit.link')) ?></button>
                 </form>
             <?php endif; ?>
         <?php endif; ?>

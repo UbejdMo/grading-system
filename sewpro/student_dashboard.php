@@ -16,7 +16,7 @@ $stmt = $conn->prepare(
 $stmt->bind_param('i', $student_id);
 $stmt->execute();
 $student_data = $stmt->get_result()->fetch_assoc()
-    ?: ['username' => '', 'class_name' => 'Pa klasë'];
+    ?: ['username' => '', 'class_name' => t('student.no_class')];
 
 $success_message = null;
 $info_message = null;
@@ -55,51 +55,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($grade_inserted) {
-            $success_message = 'Notat u dërguan me sukses në vetëvlerësim!';
+            $success_message = t('student.success');
         }
         if ($already_graded) {
-            $info_message = 'Disa lëndë i keni vlerësuar tashmë për ditën e sotme.';
+            $info_message = t('student.already');
         }
     } else {
-        $info_message = 'Nuk është dërguar asnjë notë! Ju lutem, përzgjidhni notat.';
+        $info_message = t('student.none');
     }
 }
 
 $subjects_result = $conn->query('SELECT subject_id, subject_name FROM subjects ORDER BY subject_name');
 
-page_header('Lista e Kontrollit - Vetëvlerësim');
+// Rubrikat e vlerësimit në gjuhën aktuale - u kalohen kartelave në JS
+$rubrics = [];
+foreach (['grades', 'discipline', 'forget'] as $type) {
+    for ($i = 1; $i <= 5; $i++) {
+        $rubrics[$type][] = t("rubric.$type.$i");
+    }
+}
+$button_labels = [
+    'grades' => t('student.info_grades'),
+    'discipline' => t('student.info_discipline'),
+    'forget' => t('student.info_forget'),
+];
+
+page_header(t('student.title'));
 ?>
 <div class="student-container">
-    <h1>Lista e Kontrollit - Vetëvlerësim</h1>
-    <button class="grade-info" onclick="toggleInfo('grades')">Info për notimin</button>
-    <button class="discipline-info" onclick="toggleInfo('discipline')">Disiplina</button>
-    <button class="forget-info" onclick="toggleInfo('forget')">Mjetet e punës</button>
+    <h1><?= e(t('student.title')) ?></h1>
+    <button class="grade-info" onclick="toggleInfo('grades')"><?= e($button_labels['grades']) ?></button>
+    <button class="discipline-info" onclick="toggleInfo('discipline')"><?= e($button_labels['discipline']) ?></button>
+    <button class="forget-info" onclick="toggleInfo('forget')"><?= e($button_labels['forget']) ?></button>
     <div class="info-div"></div>
     <script>
-        const infoCards = {
-            grades: [
-                'Plotësisht kam kuptuar mësimin /detyrat, rrallëherë marr sqarime.',
-                'Pothuajse plotësisht kam kuptuar mësimin /detyrat, nganjëherë marr sqarime.',
-                'Mesatarisht kam kuptuar mësimin /detyrat, disa herë marr sqarime.',
-                'Pjesërisht kam kuptuar mësimin /detyrat, shpeshherë marr sqarime.',
-                'Pothuajse pjesërisht kam kuptuar mësimin /detyrat, shumë herë marr sqarime.'
-            ],
-            discipline: [
-                'Rrallëherë më tërhiqet vërejtja për koncentrim dhe të folurit pa leje. (1 herë)',
-                'Nganjëherë më tërhiqet vërejtja për koncentrim dhe të folurit pa leje. (2-3 herë)',
-                'Disa herë më tërhiqet vërejtja për koncentrim dhe të folurit pa leje. (4-5 herë)',
-                'Shpeshherë më tërhiqet vërejtja për koncentrim dhe të folurit pa leje. (6-7 herë)',
-                'Shumë herë më tërhiqet vërejtja për koncentrim dhe të folurit pa leje. (8+ herë)'
-            ],
-            forget: [
-                'Nuk i harroj mjetet e punës për mësim.',
-                'I harroj mjetet e punës për mësim. (lapsin / gomën)',
-                'I harroj mjetet e punës për mësim. (bllokun/ ngjyrat/ pentagramin)',
-                'I harroj mjetet e punës për mësim. (librin/ fletoren/ vizoren / kompasin)',
-                'I harroj mjetet e punës për mësim. (librat / fletoret/ portfolion)'
-            ]
-        };
-        const buttonLabels = { grades: 'Info për notimin', discipline: 'Disiplina', forget: 'Mjetet e punës' };
+        const infoCards = <?= json_encode($rubrics, JSON_UNESCAPED_UNICODE) ?>;
+        const buttonLabels = <?= json_encode($button_labels, JSON_UNESCAPED_UNICODE) ?>;
         const buttons = {
             grades: document.querySelector('.grade-info'),
             discipline: document.querySelector('.discipline-info'),
@@ -139,15 +130,15 @@ page_header('Lista e Kontrollit - Vetëvlerësim');
     <form method="POST">
         <?= csrf_field() ?>
         <div class="student-info">
-            <p>Emri dhe Mbiemri: <?= e($student_data['username']) ?></p>
-            <p>Klasa: <?= e($student_data['class_name']) ?></p>
+            <p><?= e(t('student.name')) ?> <?= e($student_data['username']) ?></p>
+            <p><?= e(t('student.class')) ?> <?= e($student_data['class_name']) ?></p>
         </div>
         <div class="table-responsive">
             <table class="student-table">
                 <thead>
                     <tr>
-                        <th rowspan="2">Lënda</th>
-                        <th colspan="5">Ngjyrat e Legos</th>
+                        <th rowspan="2"><?= e(t('student.subject')) ?></th>
+                        <th colspan="5"><?= e(t('student.lego')) ?></th>
                     </tr>
                     <tr class="header-row">
                         <th class="grade-a">A</th>
@@ -170,7 +161,7 @@ page_header('Lista e Kontrollit - Vetëvlerësim');
             </table>
         </div>
 
-        <button class="student-button" type="submit">Përfundo</button>
+        <button class="student-button" type="submit"><?= e(t('student.submit')) ?></button>
     </form>
 </div>
 <?php page_footer(); ?>

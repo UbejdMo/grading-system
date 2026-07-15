@@ -2,12 +2,17 @@
 require_once __DIR__ . '/includes/layout.php';
 require_role('admin');
 
-$days_of_week = [
-    'Monday' => 'e Hënë', 'Tuesday' => 'e Martë', 'Wednesday' => 'e Mërkurë',
-    'Thursday' => 'e Enjte', 'Friday' => 'e Premte', 'Saturday' => 'e Shtunë', 'Sunday' => 'e Diel',
-];
+$days_of_week = [];
+foreach (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as $d) {
+    $days_of_week[$d] = t("day.$d");
+}
 
-$roles_shqip = ['admin' => 'Administrator', 'teacher' => 'Mësues', 'student' => 'Nxënës', 'parent' => 'Prind'];
+$roles_shqip = [
+    'admin' => t('role.admin'),
+    'teacher' => t('role.teacher'),
+    'student' => t('role.student'),
+    'parent' => t('role.parent'),
+];
 
 $success_message = null;
 $error_message = null;
@@ -28,22 +33,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (isset($_POST['add_time_limit']) || isset($_POST['update_time_limit'])) {
         if (!isset($roles_shqip[$role])) {
-            $error_message = 'Zgjidhni një rol valid.';
+            $error_message = t('limits.err_role');
         } elseif ($days === '') {
-            $error_message = 'Duhet të zgjedhni së paku një ditë!';
+            $error_message = t('limits.err_days');
         } elseif ($start_time === '' || $end_time === '' || $start_time >= $end_time) {
-            $error_message = 'Koha e fillimit duhet të jetë para kohës së përfundimit.';
+            $error_message = t('limits.err_time');
         } elseif (isset($_POST['add_time_limit'])) {
             $stmt = $conn->prepare('INSERT INTO user_time_limits (role, days, start_time, end_time) VALUES (?, ?, ?, ?)');
             $stmt->bind_param('ssss', $role, $days, $start_time, $end_time);
             $stmt->execute();
-            $success_message = 'Orari i kyçjes u shtua me sukses!';
+            $success_message = t('limits.added');
         } else {
             $limit_id = (int) $_POST['limit_id'];
             $stmt = $conn->prepare('UPDATE user_time_limits SET role = ?, days = ?, start_time = ?, end_time = ? WHERE limit_id = ?');
             $stmt->bind_param('ssssi', $role, $days, $start_time, $end_time, $limit_id);
             $stmt->execute();
-            $success_message = 'Orari i kyçjes u modifikua me sukses!';
+            $success_message = t('limits.updated');
         }
     }
 
@@ -52,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare('DELETE FROM user_time_limits WHERE limit_id = ?');
         $stmt->bind_param('i', $limit_id);
         $stmt->execute();
-        $success_message = 'Orari i kyçjes u fshi me sukses!';
+        $success_message = t('limits.deleted');
     }
 }
 
@@ -76,12 +81,12 @@ function day_checkboxes(array $days_of_week, array $selected = []): void
     }
 }
 
-page_header('Menaxho Orarin e Kyçjes', [
-    ['href' => 'admin_dashboard.php', 'icon' => 'shield_person', 'label' => 'Paneli'],
+page_header(t('limits.title'), [
+    ['href' => 'admin_dashboard.php', 'icon' => 'shield_person', 'label' => t('nav.panel')],
 ]);
 ?>
 <div class="card" style="max-width: 760px; margin-left: auto; margin-right: auto;">
-    <h1>Menaxho Orarin e Kyçjes</h1>
+    <h1><?= e(t('limits.title')) ?></h1>
 
     <?php if ($success_message !== null): ?>
         <p class="success-message"><?= e($success_message) ?></p>
@@ -91,66 +96,66 @@ page_header('Menaxho Orarin e Kyçjes', [
     <?php endif; ?>
 
     <?php if ($edit_data): ?>
-        <h2>Modifiko Orarin e Kyçjes</h2>
+        <h2><?= e(t('limits.edit')) ?></h2>
         <form method="POST" action="manage_time_limits.php">
             <?= csrf_field() ?>
             <input type="hidden" name="limit_id" value="<?= (int) $edit_data['limit_id'] ?>">
             <div class="form-row">
-                <label for="role">Roli:</label>
+                <label for="role"><?= e(t('limits.role')) ?></label>
                 <select name="role" required>
                     <?php foreach ($roles_shqip as $role_key => $role_name): ?>
                         <option value="<?= $role_key ?>" <?= $edit_data['role'] === $role_key ? 'selected' : '' ?>><?= $role_name ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            <label>Ditët:</label>
+            <label><?= e(t('limits.days')) ?></label>
             <?php day_checkboxes($days_of_week, explode(',', $edit_data['days'])); ?>
             <div class="form-row">
-                <label for="start_time">Koha e fillimit:</label>
+                <label for="start_time"><?= e(t('limits.start')) ?></label>
                 <input type="time" name="start_time" value="<?= e(substr($edit_data['start_time'], 0, 5)) ?>" required>
             </div>
             <div class="form-row">
-                <label for="end_time">Koha e përfundimit:</label>
+                <label for="end_time"><?= e(t('limits.end')) ?></label>
                 <input type="time" name="end_time" value="<?= e(substr($edit_data['end_time'], 0, 5)) ?>" required>
             </div>
-            <button class="admin-button" type="submit" name="update_time_limit">Ruaj ndryshimet</button>
+            <button class="admin-button" type="submit" name="update_time_limit"><?= e(t('limits.save_btn')) ?></button>
         </form>
     <?php else: ?>
-        <h2>Shto Orarin e Kyçjes</h2>
+        <h2><?= e(t('limits.add')) ?></h2>
         <form method="POST" action="manage_time_limits.php">
             <?= csrf_field() ?>
             <div class="form-row">
-                <label for="role">Roli:</label>
+                <label for="role"><?= e(t('limits.role')) ?></label>
                 <select class="select-role" name="role" required>
                     <?php foreach ($roles_shqip as $role_key => $role_name): ?>
                         <option value="<?= $role_key ?>"><?= $role_name ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            <label>Ditët:</label>
+            <label><?= e(t('limits.days')) ?></label>
             <?php day_checkboxes($days_of_week); ?>
             <div class="form-row">
-                <label for="start_time">Koha e fillimit:</label>
+                <label for="start_time"><?= e(t('limits.start')) ?></label>
                 <input type="time" name="start_time" required>
             </div>
             <div class="form-row">
-                <label for="end_time">Koha e përfundimit:</label>
+                <label for="end_time"><?= e(t('limits.end')) ?></label>
                 <input type="time" name="end_time" required>
             </div>
-            <button class="admin-button" type="submit" name="add_time_limit">Shto orarin e kyçjes</button>
+            <button class="admin-button" type="submit" name="add_time_limit"><?= e(t('limits.add_btn')) ?></button>
         </form>
     <?php endif; ?>
 
-    <h2>Orari aktual i Kyçjes</h2>
+    <h2><?= e(t('limits.current')) ?></h2>
     <div class="table-responsive">
         <table class="admin-table">
             <thead>
                 <tr>
-                    <th>Roli</th>
-                    <th>Ditët</th>
-                    <th>Fillimi</th>
-                    <th>Përfundimi</th>
-                    <th>Veprimet</th>
+                    <th><?= e(t('users.role')) ?></th>
+                    <th><?= e(t('limits.days')) ?></th>
+                    <th><?= e(t('limits.start_col')) ?></th>
+                    <th><?= e(t('limits.end_col')) ?></th>
+                    <th><?= e(t('users.actions')) ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -170,11 +175,11 @@ page_header('Menaxho Orarin e Kyçjes', [
                         <td><?= e(substr($limit['end_time'], 0, 5)) ?></td>
                         <td>
                             <div class="actions-cell">
-                                <a class="btn btn-small" style="text-decoration: none;" href="?edit=<?= (int) $limit['limit_id'] ?>">Modifiko</a>
-                                <form method="POST" onsubmit="return confirm('A jeni të sigurt se dëshironi ta fshini?');">
+                                <a class="btn btn-small" style="text-decoration: none;" href="?edit=<?= (int) $limit['limit_id'] ?>"><?= e(t('users.edit')) ?></a>
+                                <form method="POST" onsubmit="return confirm(<?= e(json_encode(t('limits.confirm_delete'), JSON_UNESCAPED_UNICODE)) ?>);">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="limit_id" value="<?= (int) $limit['limit_id'] ?>">
-                                    <button class="btn btn-small btn-danger" type="submit" name="delete_time_limit">Fshij</button>
+                                    <button class="btn btn-small btn-danger" type="submit" name="delete_time_limit"><?= e(t('users.delete')) ?></button>
                                 </form>
                             </div>
                         </td>

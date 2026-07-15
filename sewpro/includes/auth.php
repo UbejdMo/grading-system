@@ -6,6 +6,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/lang.php';
+
 /**
  * Kontrollon orarin e lejuar të kyçjes për një rol në këtë moment.
  *
@@ -116,6 +118,6 @@ function csrf_check(): void
 {
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
         http_response_code(403);
-        exit('Kërkesa u refuzua për arsye sigurie. Rifreskoni faqen dhe provoni përsëri.');
+        exit(t('csrf.failed'));
     }
 }

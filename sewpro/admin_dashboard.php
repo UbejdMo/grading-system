@@ -2,21 +2,21 @@
 require_once __DIR__ . '/includes/layout.php';
 require_role('admin');
 
-page_header('Moduli i Administratorit');
+page_header(t('admin.title'));
 ?>
-<h1 style="text-align: center;">Moduli i Administratorit</h1>
+<h1 style="text-align: center;"><?= e(t('admin.title')) ?></h1>
 <div class="dashboard-grid">
     <a class="dashboard-tile" href="manage_users.php">
         <span class="material-symbols-outlined">group</span>
-        Menaxho Përdorues
+        <?= e(t('admin.users')) ?>
     </a>
     <a class="dashboard-tile" href="manage_classes.php">
         <span class="material-symbols-outlined">school</span>
-        Menaxho Klasat
+        <?= e(t('admin.classes')) ?>
     </a>
     <a class="dashboard-tile" href="manage_time_limits.php">
         <span class="material-symbols-outlined">schedule</span>
-        Menaxho Orarin e Kyçjes
+        <?= e(t('admin.schedule')) ?>
     </a>
 </div>
 <?php page_footer(); ?>
