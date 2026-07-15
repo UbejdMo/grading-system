@@ -38,8 +38,8 @@ function page_header(string $title, array $nav = []): void
                     <span><?= e($item['label']) ?></span>
                 </a>
             <?php endforeach; ?>
-            <?= lang_switch_html() ?>
         </nav>
+        <?= lang_switch_html() ?>
     </div>
 </header>
 <?php if (!empty($GLOBALS['session_ends_at'])):

@@ -10,10 +10,10 @@ $dashboards = [
 
 // Llogaritë demo që shfaqen në faqen e kyçjes (për prezantim publik)
 $demo_accounts = [
-    ['role' => 'role.admin', 'icon' => 'shield_person', 'username' => 'admin', 'password' => '123'],
-    ['role' => 'role.teacher', 'icon' => 'co_present', 'username' => 'Qemajl', 'password' => '123'],
-    ['role' => 'role.student', 'icon' => 'backpack', 'username' => 'arber', 'password' => '123'],
-    ['role' => 'role.parent', 'icon' => 'family_restroom', 'username' => 'Shaban', 'password' => '123'],
+    ['key' => 'admin', 'role' => 'role.admin', 'icon' => 'shield_person', 'username' => 'admin', 'password' => '123'],
+    ['key' => 'teacher', 'role' => 'role.teacher', 'icon' => 'co_present', 'username' => 'Qemajl', 'password' => '123'],
+    ['key' => 'student', 'role' => 'role.student', 'icon' => 'backpack', 'username' => 'arber', 'password' => '123'],
+    ['key' => 'parent', 'role' => 'role.parent', 'icon' => 'family_restroom', 'username' => 'Shaban', 'password' => '123'],
 ];
 
 // Nëse është i kyçur tashmë, dërgoje te paneli i vet
@@ -106,9 +106,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="login-body">
+    <div class="login-topbar"><?= lang_switch_html() ?></div>
     <div class="login-wrapper">
         <div class="login-container">
-            <div class="login-lang"><?= lang_switch_html() ?></div>
             <h2><?= e(t('login.title')) ?></h2>
             <form action="login.php<?= isset($_GET['lang']) ? '?lang=' . e(current_lang()) : '' ?>" method="POST">
                 <?= csrf_field() ?>
@@ -136,11 +136,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p class="demo-title"><span class="material-symbols-outlined">touch_app</span> <?= e(t('login.demo_title')) ?></p>
                 <div class="demo-grid">
                     <?php foreach ($demo_accounts as $acc): ?>
-                        <button type="button" class="demo-chip"
+                        <button type="button" class="demo-chip" data-role="<?= e($acc['key']) ?>"
                             onclick="fillDemo('<?= e($acc['username']) ?>', '<?= e($acc['password']) ?>')">
-                            <span class="material-symbols-outlined"><?= e($acc['icon']) ?></span>
-                            <span class="demo-role"><?= e(t($acc['role'])) ?></span>
-                            <span class="demo-cred"><?= e($acc['username']) ?> / <?= e($acc['password']) ?></span>
+                            <span class="demo-icon"><span class="material-symbols-outlined"><?= e($acc['icon']) ?></span></span>
+                            <span class="demo-text">
+                                <span class="demo-role"><?= e(t($acc['role'])) ?></span>
+                                <span class="demo-cred"><?= e($acc['username']) ?> · <?= e($acc['password']) ?></span>
+                            </span>
+                            <span class="material-symbols-outlined demo-go">arrow_forward</span>
                         </button>
                     <?php endforeach; ?>
                 </div>
